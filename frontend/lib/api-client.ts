@@ -1,5 +1,6 @@
 import type {
   AddUserToGroupPayload,
+  AdminUserRecord,
   CreateAdminUserPayload,
   CreateGroupPayload,
   CreatePointClassificationPayload,
@@ -17,6 +18,7 @@ import type {
   PendingPointReviewSummary,
   SpeciesRecord,
   UpdateGroupPayload,
+  UpdateAdminUserPayload,
   UpdatePointClassificationPayload,
   UpdatePointEventTypePayload,
   UpdatePointPayload,
@@ -436,6 +438,12 @@ export const apiClient = {
       redirectTo: string;
     }>("/api/admin/users", {
       method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  updateUser(id: string, payload: UpdateAdminUserPayload) {
+    return request<AdminUserRecord>(`/api/admin/users/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
   },

@@ -2,12 +2,15 @@ import { AdminPanel } from "@/components/admin/admin-panel";
 import { requireUserContext } from "@/lib/auth";
 import { withGroupLogo } from "@/lib/group-logos";
 import { loadPointClassifications } from "@/lib/point-classifications";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
+  AdminUserRecord,
   GroupRecord,
   PointClassificationRecord,
   PointEventTypeRecord,
   SpeciesRecord,
+  UserRole,
 } from "@/types/domain";
 
 export default async function AdminPage({
@@ -36,7 +39,15 @@ export default async function AdminPage({
   }
 
   const supabase = await createServerSupabaseClient();
-  const [{ data: groups }, classificationsResponse, { data: eventTypes }, { data: speciesCatalog }] = await Promise.all([
+  const adminSupabase = createAdminSupabaseClient();
+  const [
+    { data: groups },
+    classificationsResponse,
+    { data: eventTypes },
+    { data: speciesCatalog },
+    { data: usersData, error: usersError },
+    { data: membershipsData, error: membershipsError },
+  ] = await Promise.all([
     supabase.rpc("list_groups"),
     loadPointClassifications(supabase, true),
     supabase.rpc("list_point_event_types", {
@@ -45,7 +56,63 @@ export default async function AdminPage({
     supabase.rpc("list_species", {
       p_only_active: false,
     }),
+    adminSupabase
+      .from("users")
+      .select("id, auth_user_id, name, email, created_at")
+      .order("name", { ascending: true }),
+    adminSupabase
+      .from("user_groups")
+      .select("user_id, group_id, role, groups!inner(name, code)")
+      .order("group_id", { ascending: true }),
   ]);
+
+  if (usersError) {
+    throw new Error(usersError.message);
+  }
+
+  if (membershipsError) {
+    throw new Error(membershipsError.message);
+  }
+
+  const membershipsByUserId = new Map<
+    string,
+    Array<{ group_id: string; group_name: string; group_code: string; role: UserRole }>
+  >();
+
+  for (const membership of (membershipsData ?? []) as Array<{
+    user_id: string;
+    group_id: string;
+    role: UserRole;
+    groups: { name: string; code: string } | Array<{ name: string; code: string }>;
+  }>) {
+    const groupRecord = Array.isArray(membership.groups)
+      ? membership.groups[0]
+      : membership.groups;
+
+    if (!groupRecord) {
+      continue;
+    }
+
+    const current = membershipsByUserId.get(membership.user_id) ?? [];
+    current.push({
+      group_id: membership.group_id,
+      group_name: groupRecord.name,
+      group_code: groupRecord.code,
+      role: membership.role,
+    });
+    membershipsByUserId.set(membership.user_id, current);
+  }
+
+  const initialUsers = ((usersData ?? []) as Array<{
+    id: string;
+    auth_user_id: string;
+    name: string;
+    email: string;
+    created_at: string;
+  }>).map<AdminUserRecord>((user) => ({
+    ...user,
+    memberships: membershipsByUserId.get(user.id) ?? [],
+  }));
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const initialSection =
@@ -64,6 +131,7 @@ export default async function AdminPage({
       }
       initialEventTypes={(eventTypes ?? []) as PointEventTypeRecord[]}
       initialSpeciesCatalog={(speciesCatalog ?? []) as SpeciesRecord[]}
+      initialUsers={initialUsers}
       initialSection={initialSection}
       initialSpeciesCommonName={resolvedSearchParams?.commonName ?? ""}
     />

@@ -173,6 +173,17 @@ export interface UserProfile {
   created_at: string;
 }
 
+export interface AdminUserGroupMembership {
+  group_id: string;
+  group_name: string;
+  group_code: string;
+  role: UserRole;
+}
+
+export interface AdminUserRecord extends UserProfile {
+  memberships: AdminUserGroupMembership[];
+}
+
 export interface UserContext {
   profile: UserProfile;
   groups: GroupRecord[];
@@ -248,6 +259,17 @@ export interface CreateAdminUserPayload {
   email: string;
   groupId: string;
   role: UserRole;
+}
+
+export interface UpdateAdminUserMembershipPayload {
+  groupId: string;
+  role: UserRole;
+}
+
+export interface UpdateAdminUserPayload {
+  name?: string;
+  email?: string;
+  memberships?: UpdateAdminUserMembershipPayload[];
 }
 
 export interface CreatePointClassificationPayload {

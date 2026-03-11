@@ -7,12 +7,16 @@ import { GroupLogoEditor } from "@/components/admin/group-logo-editor";
 import { AdminModal } from "@/components/admin/admin-modal";
 import { apiClient } from "@/lib/api-client";
 import {
+  USER_ROLE_LABELS,
   USER_ROLE_OPTIONS,
+  type AdminUserGroupMembership,
+  type AdminUserRecord,
   type CreateAdminUserPayload,
   type GroupRecord,
   type PointClassificationRecord,
   type PointEventTypeRecord,
   type SpeciesRecord,
+  type UpdateAdminUserPayload,
   type UserRole,
 } from "@/types/domain";
 
@@ -21,6 +25,7 @@ type ModalMode = "create" | "edit";
 
 interface AdminPanelProps {
   initialGroups: GroupRecord[];
+  initialUsers: AdminUserRecord[];
   initialClassifications: PointClassificationRecord[];
   initialEventTypes: PointEventTypeRecord[];
   initialSpeciesCatalog: SpeciesRecord[];
@@ -32,6 +37,11 @@ interface UserCredentials {
   publicUserId: string;
   email: string;
   inviteSent: boolean;
+}
+
+interface EditableUserMembership {
+  groupId: string;
+  role: UserRole;
 }
 
 const SECTION_OPTIONS: Array<{ id: AdminSection; label: string }> = [
@@ -64,6 +74,7 @@ function getDefaultEventTypeClassificationId(
 
 export function AdminPanel({
   initialGroups,
+  initialUsers,
   initialClassifications,
   initialEventTypes,
   initialSpeciesCatalog,
@@ -72,6 +83,7 @@ export function AdminPanel({
 }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<AdminSection>(initialSection);
   const [groups, setGroups] = useState(() => sortByLocale(initialGroups, (item) => item.name));
+  const [users, setUsers] = useState(() => sortByLocale(initialUsers, (item) => item.name));
   const [classifications, setClassifications] = useState(() =>
     sortByLocale(initialClassifications, (item) => item.name),
   );
@@ -101,6 +113,16 @@ export function AdminPanel({
   const [userEmail, setUserEmail] = useState("");
   const [userGroupId, setUserGroupId] = useState(initialGroups[0]?.id ?? "");
   const [userRole, setUserRole] = useState<UserRole>("group_collaborator");
+  const [userMemberships, setUserMemberships] = useState<EditableUserMembership[]>(() =>
+    initialGroups[0]
+      ? [
+          {
+            groupId: initialGroups[0].id,
+            role: "group_collaborator",
+          },
+        ]
+      : [],
+  );
 
   const [classificationName, setClassificationName] = useState("");
   const [classificationSlug, setClassificationSlug] = useState("");
@@ -138,7 +160,7 @@ export function AdminPanel({
     if (!modalSection) return "";
     const action = modalMode === "create" ? "Novo" : "Editar";
     if (modalSection === "groups") return `${action} grupo`;
-    if (modalSection === "users") return "Novo usuario";
+    if (modalSection === "users") return `${action} usuario`;
     if (modalSection === "classifications") return `${action} classificacao`;
     if (modalSection === "event-types") return `${action} tipo de evento`;
     return `${action} especie`;
@@ -185,11 +207,35 @@ export function AdminPanel({
     setGroupRemoveLogo(false);
   }
 
-  function resetUserForm(seed?: Partial<CreateAdminUserPayload>) {
+  function createEmptyUserMembership(
+    seed?: Partial<EditableUserMembership | AdminUserGroupMembership>,
+  ): EditableUserMembership {
+    const source = (seed ?? {}) as Partial<EditableUserMembership> &
+      Partial<AdminUserGroupMembership>;
+
+    return {
+      groupId: source.groupId ?? source.group_id ?? groups[0]?.id ?? "",
+      role: source.role ?? "group_collaborator",
+    };
+  }
+
+  function resetUserForm(
+    seed?: Partial<CreateAdminUserPayload> & {
+      memberships?: Array<EditableUserMembership | AdminUserGroupMembership>;
+    },
+  ) {
     setUserName(seed?.name ?? "");
     setUserEmail(seed?.email ?? "");
     setUserGroupId(seed?.groupId ?? groups[0]?.id ?? "");
     setUserRole(seed?.role ?? "group_collaborator");
+    if (seed?.memberships) {
+      setUserMemberships(
+        seed.memberships.map((membership) => createEmptyUserMembership(membership)),
+      );
+      return;
+    }
+
+    setUserMemberships(groups[0] ? [createEmptyUserMembership()] : []);
   }
 
   function resetClassificationForm(
@@ -256,6 +302,25 @@ export function AdminPanel({
     }
   }
 
+  function openEditUserModal(id: string) {
+    const user = users.find((item) => item.id === id);
+
+    if (!user) {
+      return;
+    }
+
+    setActiveSection("users");
+    setModalSection("users");
+    setModalMode("edit");
+    setEditingId(id);
+    setErrorMessage(null);
+    resetUserForm({
+      name: user.name,
+      email: user.email,
+      memberships: user.memberships,
+    });
+  }
+
   function openEditModal(section: Exclude<AdminSection, "users">, id: string) {
     setActiveSection(section);
     setModalSection(section);
@@ -311,6 +376,48 @@ export function AdminPanel({
     });
   }
 
+  function updateUserMembership(
+    index: number,
+    patch: Partial<EditableUserMembership>,
+  ) {
+    setUserMemberships((current) =>
+      current.map((membership, membershipIndex) =>
+        membershipIndex === index ? { ...membership, ...patch } : membership,
+      ),
+    );
+  }
+
+  function addUserMembership() {
+    setUserMemberships((current) => [...current, createEmptyUserMembership()]);
+  }
+
+  function removeUserMembership(index: number) {
+    setUserMemberships((current) =>
+      current.filter((_, membershipIndex) => membershipIndex !== index),
+    );
+  }
+
+  function normalizeUserMemberships(
+    memberships: EditableUserMembership[],
+  ): UpdateAdminUserPayload["memberships"] {
+    const normalized = new Map<string, UserRole>();
+
+    for (const membership of memberships) {
+      const groupId = membership.groupId.trim();
+
+      if (!groupId) {
+        continue;
+      }
+
+      normalized.set(groupId, membership.role);
+    }
+
+    return Array.from(normalized.entries()).map(([groupId, role]) => ({
+      groupId,
+      role,
+    }));
+  }
+
   function renderEmpty(message: string) {
     return (
       <div className="surface-subtle">
@@ -364,18 +471,59 @@ export function AdminPanel({
       }
 
       if (modalSection === "users") {
-        const created = await apiClient.createUser({
-          name: userName,
-          email: userEmail,
-          groupId: userGroupId,
-          role: userRole,
-        });
-        setGeneratedCredentials({
-          publicUserId: created.publicUserId,
-          email: created.email,
-          inviteSent: created.inviteSent,
-        });
-        toast.success("Convite enviado por email.");
+        if (modalMode === "create") {
+          const created = await apiClient.createUser({
+            name: userName,
+            email: userEmail,
+            groupId: userGroupId,
+            role: userRole,
+          });
+          setGeneratedCredentials({
+            publicUserId: created.publicUserId,
+            email: created.email,
+            inviteSent: created.inviteSent,
+          });
+          const initialGroup = groups.find((group) => group.id === created.groupId);
+          setUsers((current) =>
+            sortByLocale(
+              [
+                ...current,
+                {
+                  id: created.publicUserId,
+                  auth_user_id: created.authUserId,
+                  name: userName.trim(),
+                  email: created.email,
+                  created_at: new Date().toISOString(),
+                  memberships: initialGroup
+                    ? [
+                        {
+                          group_id: initialGroup.id,
+                          group_name: initialGroup.name,
+                          group_code: initialGroup.code,
+                          role: created.role as UserRole,
+                        },
+                      ]
+                    : [],
+                },
+              ],
+              (item) => item.name,
+            ),
+          );
+          toast.success("Convite enviado por email.");
+        } else if (editingId) {
+          const updated = await apiClient.updateUser(editingId, {
+            name: userName,
+            email: userEmail,
+            memberships: normalizeUserMemberships(userMemberships),
+          });
+          setUsers((current) =>
+            sortByLocale(
+              current.map((item) => (item.id === editingId ? updated : item)),
+              (item) => item.name,
+            ),
+          );
+          toast.success("Usuario atualizado com sucesso.");
+        }
       }
 
       if (modalSection === "classifications") {
@@ -531,19 +679,62 @@ export function AdminPanel({
         <div className="panel-header">
           <div className="stack-xs">
             <h2 className="section-title">Usuarios</h2>
-            <p className="subtitle">Cadastro inicial por modal, com grupo inicial e papel.</p>
+            <p className="subtitle">Listagem de usuarios cadastrados, com grupos e papeis.</p>
           </div>
-          <button
-            className="button-secondary"
-            disabled={!canCreateUsers}
-            onClick={() => openCreateModal("users")}
-            type="button"
-          >
-            Novo usuario
-          </button>
+          <div className="button-row">
+            <span className="badge">{users.length}</span>
+            <button
+              className="button-secondary"
+              disabled={!canCreateUsers}
+              onClick={() => openCreateModal("users")}
+              type="button"
+            >
+              Novo usuario
+            </button>
+          </div>
         </div>
 
         {!canCreateUsers ? renderEmpty("Crie um grupo antes de cadastrar o primeiro usuario.") : null}
+
+        {users.length ? (
+          <div className="list list-spaced">
+            {users.map((user) => (
+              <div className="list-row" key={user.id}>
+                <div className="stack-xs">
+                  <strong>{user.name}</strong>
+                  <span className="muted">{user.email}</span>
+                  <span className="muted">
+                    Criado em {new Date(user.created_at).toLocaleString("pt-BR")}
+                  </span>
+                  {user.memberships.length ? (
+                    <div className="button-row">
+                      {user.memberships.map((membership) => (
+                        <span className="badge" key={`${user.id}-${membership.group_id}-${membership.role}`}>
+                          {membership.group_name} (@{membership.group_code}) -{" "}
+                          {USER_ROLE_LABELS[membership.role]}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">Sem grupo vinculado.</span>
+                  )}
+                </div>
+                <div className="button-row">
+                  <span className="muted">{user.id}</span>
+                  <button
+                    className="button-ghost"
+                    onClick={() => openEditUserModal(user.id)}
+                    type="button"
+                  >
+                    Editar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          renderEmpty("Nenhum usuario cadastrado ainda.")
+        )}
 
         {generatedCredentials ? (
           <div className="surface-subtle stack-xs">
@@ -857,41 +1048,119 @@ export function AdminPanel({
               </div>
             </div>
 
-            <div className="field">
-              <label htmlFor="user-group">Grupo inicial</label>
-              <select
-                id="user-group"
-                onChange={(event) => setUserGroupId(event.target.value)}
-                required
-                value={userGroupId}
-              >
-                {groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {modalMode === "create" ? (
+              <>
+                <div className="field">
+                  <label htmlFor="user-group">Grupo inicial</label>
+                  <select
+                    id="user-group"
+                    onChange={(event) => setUserGroupId(event.target.value)}
+                    required
+                    value={userGroupId}
+                  >
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="field">
-              <label htmlFor="user-role">Papel</label>
-              <select
-                id="user-role"
-                onChange={(event) => setUserRole(event.target.value as UserRole)}
-                value={userRole}
-              >
-                {USER_ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="surface-subtle">
-              <span className="muted">
-                O usuario recebera um link por email para confirmar o cadastro e definir o acesso.
-              </span>
-            </div>
+                <div className="field">
+                  <label htmlFor="user-role">Papel</label>
+                  <select
+                    id="user-role"
+                    onChange={(event) => setUserRole(event.target.value as UserRole)}
+                    value={userRole}
+                  >
+                    {USER_ROLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="surface-subtle">
+                  <span className="muted">
+                    O usuario recebera um link por email para confirmar o cadastro e definir o acesso.
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="panel-header">
+                  <div className="stack-xs">
+                    <strong>Vinculos com grupos</strong>
+                    <span className="muted">
+                      Ajuste os papeis do usuario. Sem vinculos, ele continua existindo mas nao administra grupos.
+                    </span>
+                  </div>
+                  {groups.length ? (
+                    <button className="button-ghost" onClick={addUserMembership} type="button">
+                      Adicionar grupo
+                    </button>
+                  ) : null}
+                </div>
+
+                {userMemberships.length ? (
+                  <div className="list list-spaced">
+                    {userMemberships.map((membership, index) => (
+                      <div className="list-row" key={`${membership.groupId || "novo"}-${index}`}>
+                        <div className="input-grid two">
+                          <div className="field">
+                            <label htmlFor={`user-membership-group-${index}`}>Grupo</label>
+                            <select
+                              id={`user-membership-group-${index}`}
+                              onChange={(event) =>
+                                updateUserMembership(index, { groupId: event.target.value })
+                              }
+                              value={membership.groupId}
+                            >
+                              {groups.map((group) => (
+                                <option key={group.id} value={group.id}>
+                                  {group.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`user-membership-role-${index}`}>Papel</label>
+                            <select
+                              id={`user-membership-role-${index}`}
+                              onChange={(event) =>
+                                updateUserMembership(index, {
+                                  role: event.target.value as UserRole,
+                                })
+                              }
+                              value={membership.role}
+                            >
+                              {USER_ROLE_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <button
+                          className="button-ghost danger"
+                          onClick={() => removeUserMembership(index)}
+                          type="button"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="surface-subtle">
+                    <span className="muted">
+                      Este usuario esta sem grupos vinculados no momento.
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
           </>
         ) : null}
 
