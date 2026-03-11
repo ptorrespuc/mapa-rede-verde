@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -339,7 +340,12 @@ export function PointTimeline({
                 <div className="media-upload-list">
                   {photos.map((photo) => (
                     <div className="media-upload-card" key={photo.id}>
-                      <img className="media-upload-preview" src={photo.previewUrl} alt={photo.file.name} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        className="media-upload-preview"
+                        src={photo.previewUrl}
+                        alt={photo.file.name}
+                      />
                       <div className="stack-sm">
                         <div className="stack-xs">
                           <strong>{photo.file.name}</strong>
@@ -453,10 +459,12 @@ export function PointTimeline({
                     {item.media.map((media) => (
                       <figure className="timeline-media-card" key={media.id}>
                         {media.signed_url ? (
-                          <img
+                          <Image
                             className="timeline-media-image"
                             src={media.signed_url}
                             alt={media.caption || `Foto do evento ${item.event_type}`}
+                            width={320}
+                            height={320}
                           />
                         ) : (
                           <div className="timeline-media-placeholder">Imagem indisponivel</div>
