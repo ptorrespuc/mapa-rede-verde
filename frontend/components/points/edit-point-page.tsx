@@ -86,6 +86,7 @@ export function EditPointPage({
           groups={groups}
           classifications={classifications}
           existingPointPhotos={pointMedia}
+          isEditing
           speciesCatalog={speciesCatalog}
           speciesAdminHref={speciesAdminHref}
           initialValues={{

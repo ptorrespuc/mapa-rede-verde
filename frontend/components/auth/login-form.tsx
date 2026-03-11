@@ -9,22 +9,41 @@ interface LoginFormProps {
   publicCollaborationGroups: GroupRecord[];
 }
 
+type AuthView = "login" | "register" | "forgot-password";
+
 export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
   const canUsePublicSignup = publicCollaborationGroups.length > 0;
+  const [view, setView] = useState<AuthView>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [showRegisterForm, setShowRegisterForm] = useState(false);
 
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
-  const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [registerErrorMessage, setRegisterErrorMessage] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryErrorMessage, setRecoveryErrorMessage] = useState<string | null>(null);
+  const [recoveryInfoMessage, setRecoveryInfoMessage] = useState<string | null>(null);
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false);
   const redirectingRef = useRef(false);
+
+  function resetMessages() {
+    setInfoMessage(null);
+    setErrorMessage(null);
+    setRegisterErrorMessage(null);
+    setRecoveryErrorMessage(null);
+    setRecoveryInfoMessage(null);
+  }
+
+  function openView(nextView: AuthView) {
+    resetMessages();
+    setView(nextView);
+  }
 
   function redirectToMap() {
     if (redirectingRef.current || typeof window === "undefined") {
@@ -76,24 +95,27 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
     setIsSigningIn(true);
     redirectingRef.current = false;
 
-    const supabase = createBrowserSupabaseClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setErrorMessage(error.message);
+      if (error) {
+        throw error;
+      }
+
+      redirectToMap();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel entrar.");
+    } finally {
       setIsSigningIn(false);
-      return;
     }
-
-    redirectToMap();
   }
 
   async function handleCollaboratorSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setRegisterMessage(null);
     setRegisterErrorMessage(null);
     setIsRegistering(true);
 
@@ -121,19 +143,18 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
       }
 
       if (data.session) {
-        setRegisterMessage("Cadastro concluido. Redirecionando para o mapa.");
+        setInfoMessage("Cadastro concluido. Redirecionando para o mapa.");
         redirectToMap();
         return;
       }
 
-      setInfoMessage(
-        "Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faca o login.",
-      );
       setRegisterName("");
       setRegisterEmail("");
       setRegisterPassword("");
-      setRegisterMessage(null);
-      setShowRegisterForm(false);
+      setInfoMessage(
+        "Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faca o login.",
+      );
+      setView("login");
     } catch (error) {
       setRegisterErrorMessage(
         error instanceof Error ? error.message : "Nao foi possivel concluir o cadastro.",
@@ -143,9 +164,47 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
     }
   }
 
+  async function handleForgotPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecoveryErrorMessage(null);
+    setRecoveryInfoMessage(null);
+    setIsSendingRecovery(true);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/reset-password`
+          : undefined;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail.trim(), {
+        redirectTo,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setRecoveryEmail("");
+      setInfoMessage(
+        "Se existir uma conta para esse e-mail, voce recebera um link de recuperacao.",
+      );
+      setRecoveryInfoMessage(
+        "Se existir uma conta para esse e-mail, voce recebera um link de recuperacao.",
+      );
+      setView("login");
+    } catch (error) {
+      setRecoveryErrorMessage(
+        error instanceof Error ? error.message : "Nao foi possivel enviar o link de recuperacao.",
+      );
+    } finally {
+      setIsSendingRecovery(false);
+    }
+  }
+
   return (
     <div className="stack-lg">
-      {!showRegisterForm ? (
+      {view === "login" ? (
         <form className="form-stack" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="email">E-mail</label>
@@ -182,32 +241,36 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
             </button>
           </div>
 
-          {canUsePublicSignup ? (
+          <div className="stack-xs">
             <p className="auth-inline-note">
-              Ainda nao tem conta?{" "}
+              Esqueceu a senha?{" "}
               <button
                 className="auth-link-button"
-                onClick={() => {
-                  setShowRegisterForm(true);
-                  setInfoMessage(null);
-                  setErrorMessage(null);
-                  setRegisterMessage(null);
-                  setRegisterErrorMessage(null);
-                }}
+                onClick={() => openView("forgot-password")}
                 type="button"
               >
-                Cadastre-se aqui
+                Recuperar acesso
               </button>
             </p>
-          ) : (
-            <p className="auth-inline-note">
-              O cadastro publico esta fechado no momento.
-            </p>
-          )}
+            {canUsePublicSignup ? (
+              <p className="auth-inline-note">
+                Ainda nao tem conta?{" "}
+                <button
+                  className="auth-link-button"
+                  onClick={() => openView("register")}
+                  type="button"
+                >
+                  Cadastre-se aqui
+                </button>
+              </p>
+            ) : (
+              <p className="auth-inline-note">O cadastro publico esta fechado no momento.</p>
+            )}
+          </div>
         </form>
       ) : null}
 
-      {canUsePublicSignup && showRegisterForm ? (
+      {canUsePublicSignup && view === "register" ? (
         <section className="auth-section stack-md">
           <div className="stack-xs">
             <h2 className="section-title auth-section-title">Criar conta</h2>
@@ -252,12 +315,60 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
               </div>
             </div>
 
-            {registerMessage ? <p className="success">{registerMessage}</p> : null}
             {registerErrorMessage ? <p className="error">{registerErrorMessage}</p> : null}
 
             <div className="form-actions">
               <button className="button-secondary" disabled={isRegistering} type="submit">
                 {isRegistering ? "Cadastrando..." : "Quero colaborar"}
+              </button>
+              <button
+                className="button-ghost"
+                disabled={isRegistering}
+                onClick={() => openView("login")}
+                type="button"
+              >
+                Voltar ao login
+              </button>
+            </div>
+          </form>
+        </section>
+      ) : null}
+
+      {view === "forgot-password" ? (
+        <section className="auth-section stack-md">
+          <div className="stack-xs">
+            <h2 className="section-title auth-section-title">Recuperar senha</h2>
+            <p className="subtitle">
+              Informe seu e-mail para receber o link de redefinicao da senha.
+            </p>
+          </div>
+
+          <form className="form-stack" onSubmit={handleForgotPassword}>
+            <div className="field">
+              <label htmlFor="recovery-email">E-mail</label>
+              <input
+                id="recovery-email"
+                onChange={(event) => setRecoveryEmail(event.target.value)}
+                required
+                type="email"
+                value={recoveryEmail}
+              />
+            </div>
+
+            {recoveryInfoMessage ? <p className="success">{recoveryInfoMessage}</p> : null}
+            {recoveryErrorMessage ? <p className="error">{recoveryErrorMessage}</p> : null}
+
+            <div className="form-actions">
+              <button className="button-secondary" disabled={isSendingRecovery} type="submit">
+                {isSendingRecovery ? "Enviando..." : "Enviar link"}
+              </button>
+              <button
+                className="button-ghost"
+                disabled={isSendingRecovery}
+                onClick={() => openView("login")}
+                type="button"
+              >
+                Voltar ao login
               </button>
             </div>
           </form>

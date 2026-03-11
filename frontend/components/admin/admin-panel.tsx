@@ -150,6 +150,9 @@ export function AdminPanel({
   const [speciesScientificName, setSpeciesScientificName] = useState("");
   const [speciesOrigin, setSpeciesOrigin] = useState<"native" | "exotic">("native");
   const [speciesIsActive, setSpeciesIsActive] = useState(true);
+  const [speciesFilterText, setSpeciesFilterText] = useState("");
+  const [showNativeSpecies, setShowNativeSpecies] = useState(true);
+  const [showExoticSpecies, setShowExoticSpecies] = useState(true);
 
   const canCreateUsers = canInviteUsers && groups.length > 0;
   const manageableGroupIdSet = useMemo(
@@ -189,6 +192,27 @@ export function AdminPanel({
     modalMode === "create" && activeClassifications.length > 0
       ? activeClassifications
       : classifications;
+  const filteredSpeciesCatalog = useMemo(() => {
+    const query = speciesFilterText.trim().toLowerCase();
+
+    return speciesCatalog.filter((species) => {
+      if (species.origin === "native" && !showNativeSpecies) {
+        return false;
+      }
+
+      if (species.origin === "exotic" && !showExoticSpecies) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [species.display_name, species.common_name, species.scientific_name].some((value) =>
+        value.toLowerCase().includes(query),
+      );
+    });
+  }, [showExoticSpecies, showNativeSpecies, speciesCatalog, speciesFilterText]);
 
   const modalTitle = useMemo(() => {
     if (!modalSection) return "";
@@ -968,23 +992,61 @@ export function AdminPanel({
 
   function renderSpeciesSection() {
     return (
-      <section className="list-card">
+      <section className="list-card stack-md">
         <div className="panel-header">
           <div className="stack-xs">
             <h2 className="section-title">Especies cadastradas</h2>
             <p className="subtitle">Catalogo com criacao e alteracao por modal.</p>
           </div>
           <div className="button-row">
-            <span className="badge">{speciesCatalog.length}</span>
+            <span className="badge">
+              {filteredSpeciesCatalog.length}
+              {filteredSpeciesCatalog.length !== speciesCatalog.length
+                ? ` de ${speciesCatalog.length}`
+                : ""}
+            </span>
             <button className="button-secondary" onClick={() => openCreateModal("species")} type="button">
               Nova especie
             </button>
           </div>
         </div>
 
-        <div className="list list-spaced">
-          {speciesCatalog.length
-            ? speciesCatalog.map((species) => (
+        <div className="input-grid two">
+          <div className="field">
+            <label htmlFor="species-filter-text">Buscar especie</label>
+            <input
+              id="species-filter-text"
+              onChange={(event) => setSpeciesFilterText(event.target.value)}
+              placeholder="Parte do nome popular ou cientifico"
+              value={speciesFilterText}
+            />
+          </div>
+          <div className="field">
+            <label>Origem</label>
+            <div className="button-row">
+              <label className="inline-toggle">
+                <input
+                  checked={showNativeSpecies}
+                  onChange={(event) => setShowNativeSpecies(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Nativas</span>
+              </label>
+              <label className="inline-toggle">
+                <input
+                  checked={showExoticSpecies}
+                  onChange={(event) => setShowExoticSpecies(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Exoticas</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="list">
+          {filteredSpeciesCatalog.length
+            ? filteredSpeciesCatalog.map((species) => (
                 <div className="list-row" key={species.id}>
                   <div className="stack-xs">
                     <strong>{species.display_name}</strong>
@@ -1004,7 +1066,11 @@ export function AdminPanel({
                   </div>
                 </div>
               ))
-            : renderEmpty("Nenhuma especie cadastrada ainda.")}
+            : renderEmpty(
+                speciesCatalog.length
+                  ? "Nenhuma especie encontrada com os filtros informados."
+                  : "Nenhuma especie cadastrada ainda.",
+              )}
         </div>
       </section>
     );

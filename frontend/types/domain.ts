@@ -149,6 +149,17 @@ export interface PointEventRecord {
   media: PointMediaRecord[];
 }
 
+export interface ApprovalNotificationRecord {
+  id: string;
+  point_id: string;
+  point_title: string;
+  event_type: string;
+  description: string | null;
+  event_date: string;
+  created_at: string;
+  actor_name: string;
+}
+
 export interface GroupRecord {
   id: string;
   name: string;

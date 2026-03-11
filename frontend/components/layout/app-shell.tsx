@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
+  KeyRound,
   Leaf,
   List,
   Map,
@@ -37,6 +39,7 @@ export function AppShell({
     ...(isAuthenticated && hasPointWorkspace
       ? [{ href: "/points", label: "Pontos", icon: List }]
       : []),
+    ...(isAuthenticated ? [{ href: "/notifications", label: "Notificacoes", icon: Bell }] : []),
     ...(isSuperAdmin || hasGroupAdmin
       ? [{ href: "/admin", label: "Administracao", icon: Shield }]
       : []),
@@ -59,7 +62,11 @@ export function AppShell({
 
             <nav className="nav">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href} className={`nav-link${pathname === item.href ? " active" : ""}`}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-link${pathname === item.href || pathname.startsWith(`${item.href}/`) ? " active" : ""}`}
+                >
                   <item.icon aria-hidden="true" size={15} />
                   <span>{item.label}</span>
                 </Link>
@@ -83,7 +90,13 @@ export function AppShell({
             </div>
 
             {isAuthenticated ? (
-              <SignOutButton />
+              <>
+                <Link className="button-ghost" href="/account/password">
+                  <KeyRound aria-hidden="true" size={15} />
+                  <span>Trocar senha</span>
+                </Link>
+                <SignOutButton />
+              </>
             ) : (
               <Link className="button-ghost" href="/login">
                 Entrar

@@ -30,6 +30,7 @@ export async function POST(
     const point = await reviewPointChange({
       pointId: id,
       action,
+      actorAuthUserId,
       supabase,
     });
 

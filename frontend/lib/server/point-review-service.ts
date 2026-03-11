@@ -17,12 +17,18 @@ import {
   buildReclassificationEventDescription,
   updatePointEventDescription,
 } from "@/lib/point-reclassification";
+import {
+  buildPointApprovalEventDescription,
+  getPointApprovalEventType,
+} from "@/lib/point-approval-events";
 import { ApiRouteError } from "@/lib/server/api-route";
 import {
   fromPostgrestError,
+  loadActorProfileIdOrThrow,
   loadPointDetailOrThrow,
   type ServerSupabaseClient,
 } from "@/lib/server/point-service-shared";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { PointRecord } from "@/types/domain";
 
 export type PointReviewAction = "approve" | "reject";
@@ -45,9 +51,10 @@ export async function parsePointReviewAction(request: Request): Promise<PointRev
 export async function reviewPointChange(options: {
   pointId: string;
   action: PointReviewAction;
+  actorAuthUserId: string;
   supabase: ServerSupabaseClient;
 }) {
-  const { pointId, action, supabase } = options;
+  const { pointId, action, actorAuthUserId, supabase } = options;
   const existingPoint = await loadPointDetailOrThrow(supabase, pointId);
   const pendingPointMedia = getPendingPointMediaDescriptors(existingPoint.pending_update_data);
   const pendingPointMediaMode = getPendingPointMediaMode(existingPoint.pending_update_data);
@@ -109,6 +116,12 @@ export async function reviewPointChange(options: {
           await replaceCurrentPointMedia(pointId, pendingPointMedia);
         }
       }
+
+      await recordApprovalTimelineEvent({
+        actorAuthUserId,
+        existingPoint,
+        point,
+      });
     } else if (pendingPointMedia.length) {
       await removeStoredPointMedia(pendingPointMedia);
     }
@@ -125,4 +138,35 @@ export async function reviewPointChange(options: {
   }
 
   return point;
+}
+
+async function recordApprovalTimelineEvent(options: {
+  actorAuthUserId: string;
+  existingPoint: PointRecord;
+  point: PointRecord;
+}) {
+  const { actorAuthUserId, existingPoint, point } = options;
+  const adminSupabase = createAdminSupabaseClient();
+  const actorProfileId = await loadActorProfileIdOrThrow(adminSupabase, actorAuthUserId);
+
+  if (!actorProfileId || actorProfileId === existingPoint.created_by) {
+    return;
+  }
+
+  const { error } = await adminSupabase.from("point_events").insert({
+    point_id: point.id,
+    point_event_type_id: null,
+    event_type: getPointApprovalEventType(existingPoint.has_pending_update),
+    description: buildPointApprovalEventDescription(existingPoint.has_pending_update),
+    event_date: new Date().toISOString(),
+    created_by: actorProfileId,
+  });
+
+  if (error) {
+    console.error("[point-review-approval-event]", {
+      pointId: point.id,
+      actorAuthUserId,
+      errorMessage: error.message,
+    });
+  }
 }

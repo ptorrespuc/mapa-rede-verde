@@ -22,6 +22,7 @@ interface PointFormProps {
   classifications: PointClassificationRecord[];
   speciesCatalog: SpeciesRecord[];
   existingPointPhotos?: PointMediaRecord[];
+  isEditing?: boolean;
   speciesAdminHref?: string;
   initialValues?: Partial<CreatePointPayload>;
   onSubmit: (payload: CreatePointPayload) => Promise<void> | void;
@@ -88,6 +89,7 @@ export function PointForm({
   classifications,
   speciesCatalog,
   existingPointPhotos = EMPTY_POINT_PHOTOS,
+  isEditing = false,
   speciesAdminHref,
   initialValues,
   onSubmit,
@@ -158,8 +160,9 @@ export function PointForm({
   const canAutoApprovePoint = selectedGroup?.viewer_can_approve_points ?? false;
   const requiresSpecies = selectedClassification?.requires_species ?? false;
   const hasCoordinates = Boolean(formState.longitude.trim() && formState.latitude.trim());
-  const isEditingExistingPoint = Boolean(initialValues?.classificationId);
+  const isEditingExistingPoint = isEditing;
   const isReclassificationChange =
+    isEditing &&
     Boolean(initialValues?.classificationId) &&
     initialValues?.classificationId !== formState.classificationId;
   const maxDraftPointPhotos =
@@ -183,6 +186,9 @@ export function PointForm({
       ),
     );
   }, [speciesCatalog, speciesSearch]);
+
+  const selectedSpecies =
+    speciesCatalog.find((species) => species.id === formState.speciesId) ?? null;
   const speciesAdminLink = useMemo(() => {
     if (!speciesAdminHref) {
       return undefined;
@@ -232,6 +238,34 @@ export function PointForm({
       setSpeciesSearch("");
     }
   }, [requiresSpecies, speciesSearch]);
+
+  useEffect(() => {
+    if (!requiresSpecies) {
+      return;
+    }
+
+    const query = speciesSearch.trim().toLowerCase();
+
+    if (!query) {
+      return;
+    }
+
+    const exactMatch = speciesCatalog.find((species) =>
+      [species.display_name, species.common_name, species.scientific_name].some(
+        (value) => value.trim().toLowerCase() === query,
+      ),
+    );
+
+    if (!exactMatch || exactMatch.id === formState.speciesId) {
+      return;
+    }
+
+    setFormState((current) => ({
+      ...current,
+      speciesId: exactMatch.id,
+      title: current.title.trim() ? current.title : exactMatch.common_name,
+    }));
+  }, [formState.speciesId, requiresSpecies, speciesCatalog, speciesSearch]);
 
   function setField<Key extends keyof PointFormState>(key: Key, value: PointFormState[Key]) {
     setFormState((current) => ({ ...current, [key]: value }));
@@ -466,22 +500,12 @@ export function PointForm({
           </div>
         ) : null}
 
-        <div className="field">
-          <label htmlFor="point-title">Titulo</label>
-          <input
-            id="point-title"
-            value={formState.title}
-            onChange={(event) => setField("title", event.target.value)}
-            placeholder="Arvore jovem proxima ao portao principal"
-            required
-          />
-        </div>
-
         {requiresSpecies ? (
           <div className="field">
             <label htmlFor="point-species">Especie</label>
             <input
               id="point-species-search"
+              autoComplete="off"
               value={speciesSearch}
               onChange={(event) => setSpeciesSearch(event.target.value)}
               placeholder="Buscar por nome popular ou cientifico"
@@ -492,10 +516,16 @@ export function PointForm({
               onChange={(event) => {
                 const nextSpeciesId = event.target.value;
                 const nextSpecies = speciesCatalog.find((species) => species.id === nextSpeciesId);
-                setField("speciesId", nextSpeciesId);
                 if (nextSpecies) {
                   setSpeciesSearch(nextSpecies.display_name);
+                  setFormState((current) => ({
+                    ...current,
+                    speciesId: nextSpeciesId,
+                    title: current.title.trim() ? current.title : nextSpecies.common_name,
+                  }));
+                  return;
                 }
+                setField("speciesId", nextSpeciesId);
               }}
               disabled={!speciesCatalog.length}
             >
@@ -533,6 +563,19 @@ export function PointForm({
             ) : null}
           </div>
         ) : null}
+
+        <div className="field">
+          <label htmlFor="point-title">Titulo</label>
+          <input
+            id="point-title"
+            value={formState.title}
+            onChange={(event) => setField("title", event.target.value)}
+            placeholder={
+              selectedSpecies?.common_name || "Arvore jovem proxima ao portao principal"
+            }
+            required
+          />
+        </div>
 
         <div className="field">
           <label htmlFor="point-description">Descricao</label>
