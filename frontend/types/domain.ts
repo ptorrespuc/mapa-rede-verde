@@ -182,6 +182,7 @@ export interface AdminUserGroupMembership {
 
 export interface AdminUserRecord extends UserProfile {
   memberships: AdminUserGroupMembership[];
+  hidden_membership_count: number;
 }
 
 export interface UserContext {

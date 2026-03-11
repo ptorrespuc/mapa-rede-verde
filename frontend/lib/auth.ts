@@ -29,7 +29,9 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
     return null;
   }
 
-  const manageableGroups = memberships.filter((group) => group.viewer_can_manage);
+  const manageableGroups = memberships.filter(
+    (group) => group.my_role === "group_admin" || group.my_role === "super_admin",
+  );
   const submissionGroups = memberships.filter((group) => group.viewer_can_submit_points);
   const approvableGroups = memberships.filter((group) => group.viewer_can_approve_points);
 

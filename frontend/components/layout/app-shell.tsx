@@ -8,7 +8,6 @@ import {
   Map,
   Shield,
   type LucideIcon,
-  Users,
 } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -38,8 +37,9 @@ export function AppShell({
     ...(isAuthenticated && hasPointWorkspace
       ? [{ href: "/points", label: "Pontos", icon: List }]
       : []),
-    ...(hasGroupAdmin ? [{ href: "/group", label: "Grupos", icon: Users }] : []),
-    ...(isSuperAdmin ? [{ href: "/admin", label: "Administracao", icon: Shield }] : []),
+    ...(isSuperAdmin || hasGroupAdmin
+      ? [{ href: "/admin", label: "Administracao", icon: Shield }]
+      : []),
   ];
 
   return (

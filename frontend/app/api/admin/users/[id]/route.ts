@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUserContext } from "@/lib/auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import type { AdminUserRecord, UserRole } from "@/types/domain";
+import type { AdminUserGroupMembership, AdminUserRecord, UserRole } from "@/types/domain";
 
 const validRoles = new Set<UserRole>([
   "super_admin",
+  "group_admin",
+  "group_approver",
+  "group_collaborator",
+]);
+const manageableRoles = new Set<UserRole>([
   "group_admin",
   "group_approver",
   "group_collaborator",
@@ -22,9 +27,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
 
-  if (!currentUser.is_super_admin) {
+  if (!currentUser.is_super_admin && !currentUser.has_group_admin) {
     return NextResponse.json(
-      { error: "Apenas superusuarios podem editar usuarios." },
+      { error: "Voce nao tem permissao para editar usuarios." },
       { status: 403 },
     );
   }
@@ -36,31 +41,74 @@ export async function PATCH(
   }
 
   const admin = createAdminSupabaseClient();
-  const { data: existingUser, error: existingUserError } = await admin
-    .from("users")
-    .select("id, auth_user_id, name, email, created_at")
-    .eq("id", id)
-    .maybeSingle();
+  const manageableGroupIds = new Set(currentUser.manageable_groups.map((group) => group.id));
+  const [{ data: existingUser, error: existingUserError }, { data: existingMembershipsData, error: existingMembershipsError }] =
+    await Promise.all([
+      admin
+        .from("users")
+        .select("id, auth_user_id, name, email, created_at")
+        .eq("id", id)
+        .maybeSingle(),
+      admin
+        .from("user_groups")
+        .select("group_id, role, groups!inner(name, code)")
+        .eq("user_id", id)
+        .order("group_id", { ascending: true }),
+    ]);
 
   if (existingUserError) {
     return NextResponse.json({ error: existingUserError.message }, { status: 400 });
+  }
+
+  if (existingMembershipsError) {
+    return NextResponse.json({ error: existingMembershipsError.message }, { status: 400 });
   }
 
   if (!existingUser) {
     return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
   }
 
+  const existingMemberships = normalizeMembershipRows(
+    (existingMembershipsData ?? []) as MembershipRow[],
+  );
+  const targetIsSuperAdmin = existingMemberships.some(
+    (membership) => membership.role === "super_admin",
+  );
+  const visibleExistingMemberships = currentUser.is_super_admin
+    ? existingMemberships
+    : existingMemberships.filter((membership) => manageableGroupIds.has(membership.group_id));
+
+  if (!currentUser.is_super_admin && !visibleExistingMemberships.length) {
+    return NextResponse.json({ error: "Usuario fora do seu escopo de administracao." }, { status: 404 });
+  }
+
+  if (!currentUser.is_super_admin && targetIsSuperAdmin) {
+    return NextResponse.json(
+      { error: "Administradores de grupo nao podem editar superusuarios." },
+      { status: 403 },
+    );
+  }
+
   const nextName =
-    typeof body.name === "string" && body.name.trim() ? body.name.trim() : existingUser.name;
+    currentUser.is_super_admin &&
+    typeof body.name === "string" &&
+    body.name.trim()
+      ? body.name.trim()
+      : existingUser.name;
   const nextEmail =
-    typeof body.email === "string" && body.email.trim()
+    currentUser.is_super_admin &&
+    typeof body.email === "string" &&
+    body.email.trim()
       ? body.email.trim().toLowerCase()
       : existingUser.email;
 
   let memberships;
 
   try {
-    memberships = parseMemberships(body.memberships);
+    memberships = parseMemberships(
+      body.memberships,
+      currentUser.is_super_admin ? validRoles : manageableRoles,
+    );
   } catch (error) {
     return NextResponse.json(
       {
@@ -73,7 +121,7 @@ export async function PATCH(
     );
   }
 
-  if (!nextName || !nextEmail) {
+  if (currentUser.is_super_admin && (!nextName || !nextEmail)) {
     return NextResponse.json(
       { error: "Nome e e-mail validos sao obrigatorios para editar o usuario." },
       { status: 400 },
@@ -83,7 +131,14 @@ export async function PATCH(
   if (memberships) {
     const membershipGroupIds = memberships.map((membership) => membership.groupId);
 
-    if (membershipGroupIds.length) {
+    if (!currentUser.is_super_admin) {
+      if (membershipGroupIds.some((groupId) => !manageableGroupIds.has(groupId))) {
+        return NextResponse.json(
+          { error: "Voce so pode alterar papeis nos grupos que administra." },
+          { status: 403 },
+        );
+      }
+    } else if (membershipGroupIds.length) {
       const { data: groups, error: groupsError } = await admin
         .from("groups")
         .select("id")
@@ -102,37 +157,45 @@ export async function PATCH(
     }
   }
 
-  const { error: authError } = await admin.auth.admin.updateUserById(existingUser.auth_user_id, {
-    email: nextEmail,
-    user_metadata: {
-      name: nextName,
-    },
-  });
-
-  if (authError) {
-    return NextResponse.json(
-      { error: authError.message ?? "Nao foi possivel atualizar o usuario no Auth." },
-      { status: 400 },
-    );
-  }
-
-  const { error: publicUserError } = await admin
-    .from("users")
-    .update({
-      name: nextName,
+  if (currentUser.is_super_admin) {
+    const { error: authError } = await admin.auth.admin.updateUserById(existingUser.auth_user_id, {
       email: nextEmail,
-    })
-    .eq("id", id);
+      user_metadata: {
+        name: nextName,
+      },
+    });
 
-  if (publicUserError) {
-    return NextResponse.json({ error: publicUserError.message }, { status: 400 });
+    if (authError) {
+      return NextResponse.json(
+        { error: authError.message ?? "Nao foi possivel atualizar o usuario no Auth." },
+        { status: 400 },
+      );
+    }
+
+    const { error: publicUserError } = await admin
+      .from("users")
+      .update({
+        name: nextName,
+        email: nextEmail,
+      })
+      .eq("id", id);
+
+    if (publicUserError) {
+      return NextResponse.json({ error: publicUserError.message }, { status: 400 });
+    }
   }
 
   if (memberships) {
-    const { error: deleteMembershipsError } = await admin
-      .from("user_groups")
-      .delete()
-      .eq("user_id", id);
+    let deleteMembershipsQuery = admin.from("user_groups").delete().eq("user_id", id);
+
+    if (!currentUser.is_super_admin) {
+      deleteMembershipsQuery = deleteMembershipsQuery.in(
+        "group_id",
+        Array.from(manageableGroupIds),
+      );
+    }
+
+    const { error: deleteMembershipsError } = await deleteMembershipsQuery;
 
     if (deleteMembershipsError) {
       return NextResponse.json({ error: deleteMembershipsError.message }, { status: 400 });
@@ -156,7 +219,11 @@ export async function PATCH(
   let updatedUser: AdminUserRecord | null;
 
   try {
-    updatedUser = await loadAdminUser(admin, id);
+    updatedUser = await loadAdminUser(
+      admin,
+      id,
+      currentUser.is_super_admin ? null : manageableGroupIds,
+    );
   } catch (error) {
     return NextResponse.json(
       {
@@ -179,6 +246,7 @@ export async function PATCH(
 async function loadAdminUser(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   userId: string,
+  visibleGroupIds: Set<string> | null,
 ): Promise<AdminUserRecord | null> {
   const [{ data: user, error: userError }, { data: memberships, error: membershipsError }] =
     await Promise.all([
@@ -206,34 +274,43 @@ async function loadAdminUser(
     return null;
   }
 
+  const normalizedMemberships = normalizeMembershipRows((memberships ?? []) as MembershipRow[]);
+  const visibleMemberships = visibleGroupIds
+    ? normalizedMemberships.filter((membership) => visibleGroupIds.has(membership.group_id))
+    : normalizedMemberships;
+
   return {
     ...user,
-    memberships: ((memberships ?? []) as Array<{
-      group_id: string;
-      role: UserRole;
-      groups: { name: string; code: string } | Array<{ name: string; code: string }>;
-    }>)
-      .map((membership) => {
-        const groupRecord = Array.isArray(membership.groups)
-          ? membership.groups[0]
-          : membership.groups;
-
-        if (!groupRecord) {
-          return null;
-        }
-
-        return {
-          group_id: membership.group_id,
-          group_name: groupRecord.name,
-          group_code: groupRecord.code,
-          role: membership.role,
-        };
-      })
-      .filter((membership): membership is NonNullable<typeof membership> => membership !== null),
+    memberships: visibleMemberships,
+    hidden_membership_count: Math.max(
+      normalizedMemberships.length - visibleMemberships.length,
+      0,
+    ),
   };
 }
 
-function parseMemberships(rawMemberships: unknown) {
+function normalizeMembershipRows(memberships: MembershipRow[]): AdminUserGroupMembership[] {
+  return memberships
+    .map((membership) => {
+      const groupRecord = Array.isArray(membership.groups)
+        ? membership.groups[0]
+        : membership.groups;
+
+      if (!groupRecord) {
+        return null;
+      }
+
+      return {
+        group_id: membership.group_id,
+        group_name: groupRecord.name,
+        group_code: groupRecord.code,
+        role: membership.role,
+      };
+    })
+    .filter((membership): membership is NonNullable<typeof membership> => membership !== null);
+}
+
+function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) {
   if (rawMemberships === undefined) {
     return null;
   }
@@ -255,7 +332,7 @@ function parseMemberships(rawMemberships: unknown) {
         : "";
     const role = (membership as { role?: unknown }).role;
 
-    if (!groupId || !role || !validRoles.has(role as UserRole)) {
+    if (!groupId || !role || !allowedRoles.has(role as UserRole)) {
       throw new Error("Foi encontrado um vinculo de grupo invalido.");
     }
 
@@ -267,3 +344,9 @@ function parseMemberships(rawMemberships: unknown) {
     role,
   }));
 }
+
+type MembershipRow = {
+  group_id: string;
+  role: UserRole;
+  groups: { name: string; code: string } | Array<{ name: string; code: string }>;
+};

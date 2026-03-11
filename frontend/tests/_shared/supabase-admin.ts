@@ -205,6 +205,37 @@ export async function createGroupApproverScenario() {
   };
 }
 
+export async function createAdminApproverScopeScenario() {
+  const adminGroup = await createTestGroup({
+    name: `Grupo Admin ${randomUUID().slice(0, 6)}`,
+    isPublic: true,
+    acceptsPointCollaboration: true,
+  });
+  const reviewGroup = await createTestGroup({
+    name: `Grupo Aprovador ${randomUUID().slice(0, 6)}`,
+    isPublic: true,
+    acceptsPointCollaboration: true,
+  });
+  const actor = await createConfirmedTestUser({
+    name: "Administrador com aprovacao secundaria",
+  });
+  const target = await createConfirmedTestUser({
+    name: "Usuario alvo de escopo",
+  });
+
+  await assignUserToGroup(actor, adminGroup, "group_admin");
+  await assignUserToGroup(actor, reviewGroup, "group_approver");
+  await assignUserToGroup(target, adminGroup, "group_collaborator");
+  await assignUserToGroup(target, reviewGroup, "group_collaborator");
+
+  return {
+    adminGroup,
+    reviewGroup,
+    actor,
+    target,
+  };
+}
+
 export async function listActivePointClassificationsForTests() {
   const adminSupabase = getAdminSupabaseForTests();
   const { data, error } = await adminSupabase

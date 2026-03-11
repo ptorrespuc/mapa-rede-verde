@@ -24,6 +24,11 @@ type AdminSection = "groups" | "users" | "classifications" | "event-types" | "sp
 type ModalMode = "create" | "edit";
 
 interface AdminPanelProps {
+  canCreateGroups: boolean;
+  canEditUserIdentity: boolean;
+  canInviteUsers: boolean;
+  canManageGlobalCatalogs: boolean;
+  manageableGroupIds: string[];
   initialGroups: GroupRecord[];
   initialUsers: AdminUserRecord[];
   initialClassifications: PointClassificationRecord[];
@@ -73,6 +78,11 @@ function getDefaultEventTypeClassificationId(
 }
 
 export function AdminPanel({
+  canCreateGroups,
+  canEditUserIdentity,
+  canInviteUsers,
+  canManageGlobalCatalogs,
+  manageableGroupIds,
   initialGroups,
   initialUsers,
   initialClassifications,
@@ -141,15 +151,39 @@ export function AdminPanel({
   const [speciesOrigin, setSpeciesOrigin] = useState<"native" | "exotic">("native");
   const [speciesIsActive, setSpeciesIsActive] = useState(true);
 
-  const nativeSpeciesCount = useMemo(
-    () => speciesCatalog.filter((species) => species.origin === "native").length,
-    [speciesCatalog],
+  const canCreateUsers = canInviteUsers && groups.length > 0;
+  const manageableGroupIdSet = useMemo(
+    () => new Set(manageableGroupIds),
+    [manageableGroupIds],
   );
-  const exoticSpeciesCount = speciesCatalog.length - nativeSpeciesCount;
-  const canCreateUsers = groups.length > 0;
+  const editableGroups = useMemo(
+    () =>
+      groups.filter((group) => canCreateGroups || manageableGroupIdSet.has(group.id)),
+    [canCreateGroups, groups, manageableGroupIdSet],
+  );
+  const assignableUserRoleOptions = useMemo(
+    () =>
+      canEditUserIdentity
+        ? USER_ROLE_OPTIONS
+        : USER_ROLE_OPTIONS.filter((option) => option.value !== "super_admin"),
+    [canEditUserIdentity],
+  );
   const activeClassifications = useMemo(
     () => classifications.filter((classification) => classification.is_active),
     [classifications],
+  );
+  const availableSections = useMemo(
+    () =>
+      canManageGlobalCatalogs
+        ? SECTION_OPTIONS
+        : SECTION_OPTIONS.filter(
+            (section) => section.id === "groups" || section.id === "users",
+          ),
+    [canManageGlobalCatalogs],
+  );
+  const editingUser = useMemo(
+    () => (editingId ? users.find((user) => user.id === editingId) ?? null : null),
+    [editingId, users],
   );
   const eventTypeClassificationOptions =
     modalMode === "create" && activeClassifications.length > 0
@@ -169,6 +203,7 @@ export function AdminPanel({
   useEffect(() => {
     if (
       initialSpeciesPrefillUsed ||
+      !canManageGlobalCatalogs ||
       initialSection !== "species" ||
       !initialSpeciesCommonName.trim()
     ) {
@@ -185,7 +220,20 @@ export function AdminPanel({
     setSpeciesScientificName("");
     setSpeciesOrigin("native");
     setSpeciesIsActive(true);
-  }, [initialSection, initialSpeciesCommonName, initialSpeciesPrefillUsed]);
+  }, [
+    canManageGlobalCatalogs,
+    initialSection,
+    initialSpeciesCommonName,
+    initialSpeciesPrefillUsed,
+  ]);
+
+  useEffect(() => {
+    if (availableSections.some((section) => section.id === activeSection)) {
+      return;
+    }
+
+    setActiveSection(availableSections[0]?.id ?? "groups");
+  }, [activeSection, availableSections]);
 
   function resetGroupForm(
     seed?: Partial<{
@@ -214,7 +262,7 @@ export function AdminPanel({
       Partial<AdminUserGroupMembership>;
 
     return {
-      groupId: source.groupId ?? source.group_id ?? groups[0]?.id ?? "",
+      groupId: source.groupId ?? source.group_id ?? editableGroups[0]?.id ?? groups[0]?.id ?? "",
       role: source.role ?? "group_collaborator",
     };
   }
@@ -226,7 +274,7 @@ export function AdminPanel({
   ) {
     setUserName(seed?.name ?? "");
     setUserEmail(seed?.email ?? "");
-    setUserGroupId(seed?.groupId ?? groups[0]?.id ?? "");
+    setUserGroupId(seed?.groupId ?? editableGroups[0]?.id ?? groups[0]?.id ?? "");
     setUserRole(seed?.role ?? "group_collaborator");
     if (seed?.memberships) {
       setUserMemberships(
@@ -235,7 +283,7 @@ export function AdminPanel({
       return;
     }
 
-    setUserMemberships(groups[0] ? [createEmptyUserMembership()] : []);
+    setUserMemberships(editableGroups[0] || groups[0] ? [createEmptyUserMembership()] : []);
   }
 
   function resetClassificationForm(
@@ -317,8 +365,14 @@ export function AdminPanel({
     resetUserForm({
       name: user.name,
       email: user.email,
-      memberships: user.memberships,
+      memberships: canEditUserIdentity
+        ? user.memberships
+        : user.memberships.filter((membership) => manageableGroupIdSet.has(membership.group_id)),
     });
+  }
+
+  function canEditGroup(group: GroupRecord) {
+    return canCreateGroups || manageableGroupIdSet.has(group.id);
   }
 
   function openEditModal(section: Exclude<AdminSection, "users">, id: string) {
@@ -331,6 +385,9 @@ export function AdminPanel({
     if (section === "groups") {
       const item = groups.find((group) => group.id === id);
       if (!item) return;
+      if (!canEditGroup(item)) {
+        return;
+      }
       resetGroupForm({
         name: item.name,
         code: item.code,
@@ -438,6 +495,10 @@ export function AdminPanel({
 
     try {
       if (modalSection === "groups") {
+        if (modalMode === "create" && !canCreateGroups) {
+          throw new Error("Voce nao pode criar grupos.");
+        }
+
         if (modalMode === "create") {
           const created = await apiClient.createGroup({
             name: groupName,
@@ -471,6 +532,10 @@ export function AdminPanel({
       }
 
       if (modalSection === "users") {
+        if (modalMode === "create" && !canInviteUsers) {
+          throw new Error("Voce nao pode criar usuarios.");
+        }
+
         if (modalMode === "create") {
           const created = await apiClient.createUser({
             name: userName,
@@ -494,6 +559,7 @@ export function AdminPanel({
                   name: userName.trim(),
                   email: created.email,
                   created_at: new Date().toISOString(),
+                  hidden_membership_count: 0,
                   memberships: initialGroup
                     ? [
                         {
@@ -518,7 +584,9 @@ export function AdminPanel({
           });
           setUsers((current) =>
             sortByLocale(
-              current.map((item) => (item.id === editingId ? updated : item)),
+              updated.memberships.length || canEditUserIdentity
+                ? current.map((item) => (item.id === editingId ? updated : item))
+                : current.filter((item) => item.id !== editingId),
               (item) => item.name,
             ),
           );
@@ -623,13 +691,23 @@ export function AdminPanel({
         <div className="panel-header">
           <div className="stack-xs">
             <h2 className="section-title">Grupos cadastrados</h2>
-            <p className="subtitle">A listagem fica limpa e as alteracoes abrem por modal.</p>
+            <p className="subtitle">
+              {canCreateGroups
+                ? "A listagem fica limpa e as alteracoes abrem por modal."
+                : "Voce pode visualizar os grupos em que participa, mas so edita os que administra."}
+            </p>
           </div>
           <div className="button-row">
             <span className="badge">{groups.length}</span>
-            <button className="button-secondary" onClick={() => openCreateModal("groups")} type="button">
-              Novo grupo
-            </button>
+            {canCreateGroups ? (
+              <button
+                className="button-secondary"
+                onClick={() => openCreateModal("groups")}
+                type="button"
+              >
+                Novo grupo
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -657,13 +735,17 @@ export function AdminPanel({
                     {group.accepts_point_collaboration ? (
                       <span className="badge">aceita colaboracao</span>
                     ) : null}
-                    <button
-                      className="button-ghost"
-                      onClick={() => openEditModal("groups", group.id)}
-                      type="button"
-                    >
-                      Editar
-                    </button>
+                    {canEditGroup(group) ? (
+                      <button
+                        className="button-ghost"
+                        onClick={() => openEditModal("groups", group.id)}
+                        type="button"
+                      >
+                        Editar
+                      </button>
+                    ) : (
+                      <span className="muted">Somente leitura</span>
+                    )}
                   </div>
                 </div>
               ))
@@ -679,22 +761,30 @@ export function AdminPanel({
         <div className="panel-header">
           <div className="stack-xs">
             <h2 className="section-title">Usuarios</h2>
-            <p className="subtitle">Listagem de usuarios cadastrados, com grupos e papeis.</p>
+            <p className="subtitle">
+              {canEditUserIdentity
+                ? "Listagem de usuarios cadastrados, com grupos e papeis."
+                : "Usuarios vinculados aos grupos que voce administra."}
+            </p>
           </div>
           <div className="button-row">
             <span className="badge">{users.length}</span>
-            <button
-              className="button-secondary"
-              disabled={!canCreateUsers}
-              onClick={() => openCreateModal("users")}
-              type="button"
-            >
-              Novo usuario
-            </button>
+            {canInviteUsers ? (
+              <button
+                className="button-secondary"
+                disabled={!canCreateUsers}
+                onClick={() => openCreateModal("users")}
+                type="button"
+              >
+                Novo usuario
+              </button>
+            ) : null}
           </div>
         </div>
 
-        {!canCreateUsers ? renderEmpty("Crie um grupo antes de cadastrar o primeiro usuario.") : null}
+        {canInviteUsers && !canCreateUsers
+          ? renderEmpty("Crie um grupo antes de cadastrar o primeiro usuario.")
+          : null}
 
         {users.length ? (
           <div className="list list-spaced">
@@ -718,6 +808,12 @@ export function AdminPanel({
                   ) : (
                     <span className="muted">Sem grupo vinculado.</span>
                   )}
+                  {user.hidden_membership_count > 0 ? (
+                    <span className="muted">
+                      Tambem possui acesso em {user.hidden_membership_count}{" "}
+                      {user.hidden_membership_count === 1 ? "outro grupo." : "outros grupos."}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="button-row">
                   <span className="muted">{user.id}</span>
@@ -736,7 +832,7 @@ export function AdminPanel({
           renderEmpty("Nenhum usuario cadastrado ainda.")
         )}
 
-        {generatedCredentials ? (
+        {canInviteUsers && generatedCredentials ? (
           <div className="surface-subtle stack-xs">
             <strong>Ultimo usuario criado</strong>
             <span className="muted">ID publico: {generatedCredentials.publicUserId}</span>
@@ -747,13 +843,13 @@ export function AdminPanel({
               </span>
             ) : null}
           </div>
-        ) : (
+        ) : canInviteUsers ? (
           <div className="surface-subtle">
             <span className="muted">
               O status do ultimo convite enviado aparece aqui logo apos a criacao.
             </span>
           </div>
-        )}
+        ) : null}
       </section>
     );
   }
@@ -1026,27 +1122,37 @@ export function AdminPanel({
 
         {modalSection === "users" ? (
           <>
-            <div className="input-grid two">
-              <div className="field">
-                <label htmlFor="user-name">Nome</label>
-                <input
-                  id="user-name"
-                  onChange={(event) => setUserName(event.target.value)}
-                  required
-                  value={userName}
-                />
+            {modalMode === "create" || canEditUserIdentity ? (
+              <div className="input-grid two">
+                <div className="field">
+                  <label htmlFor="user-name">Nome</label>
+                  <input
+                    id="user-name"
+                    onChange={(event) => setUserName(event.target.value)}
+                    required
+                    value={userName}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="user-email">E-mail</label>
+                  <input
+                    id="user-email"
+                    onChange={(event) => setUserEmail(event.target.value)}
+                    required
+                    type="email"
+                    value={userEmail}
+                  />
+                </div>
               </div>
-              <div className="field">
-                <label htmlFor="user-email">E-mail</label>
-                <input
-                  id="user-email"
-                  onChange={(event) => setUserEmail(event.target.value)}
-                  required
-                  type="email"
-                  value={userEmail}
-                />
+            ) : (
+              <div className="surface-subtle stack-xs">
+                <strong>{editingUser?.name ?? userName}</strong>
+                <span className="muted">{editingUser?.email ?? userEmail}</span>
+                <span className="muted">
+                  Dados cadastrais so podem ser alterados por superusuario.
+                </span>
               </div>
-            </div>
+            )}
 
             {modalMode === "create" ? (
               <>
@@ -1073,7 +1179,7 @@ export function AdminPanel({
                     onChange={(event) => setUserRole(event.target.value as UserRole)}
                     value={userRole}
                   >
-                    {USER_ROLE_OPTIONS.map((option) => (
+                    {assignableUserRoleOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -1095,12 +1201,19 @@ export function AdminPanel({
                       Ajuste os papeis do usuario. Sem vinculos, ele continua existindo mas nao administra grupos.
                     </span>
                   </div>
-                  {groups.length ? (
+                  {editableGroups.length ? (
                     <button className="button-ghost" onClick={addUserMembership} type="button">
                       Adicionar grupo
                     </button>
                   ) : null}
                 </div>
+                {!canEditUserIdentity && (editingUser?.hidden_membership_count ?? 0) > 0 ? (
+                  <div className="surface-subtle">
+                    <span className="muted">
+                      Existem acessos em outros grupos que voce nao administra. Eles nao aparecem aqui.
+                    </span>
+                  </div>
+                ) : null}
 
                 {userMemberships.length ? (
                   <div className="list list-spaced">
@@ -1116,7 +1229,7 @@ export function AdminPanel({
                               }
                               value={membership.groupId}
                             >
-                              {groups.map((group) => (
+                              {editableGroups.map((group) => (
                                 <option key={group.id} value={group.id}>
                                   {group.name}
                                 </option>
@@ -1134,7 +1247,7 @@ export function AdminPanel({
                               }
                               value={membership.role}
                             >
-                              {USER_ROLE_OPTIONS.map((option) => (
+                              {assignableUserRoleOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
                                 </option>
@@ -1372,36 +1485,13 @@ export function AdminPanel({
       <div className="page-header">
         <div>
           <p className="eyebrow">Administracao</p>
-          <h1>Gestao global da plataforma</h1>
+          <h1>{canManageGlobalCatalogs ? "Gestao da plataforma" : "Gestao dos grupos"}</h1>
           <p className="subtitle">
-            A listagem fica visivel o tempo todo; criacao e edicao abrem em sobreposicao.
+            {canManageGlobalCatalogs
+              ? "A listagem fica visivel o tempo todo; criacao e edicao abrem em sobreposicao."
+              : "Gerencie os grupos sob sua responsabilidade e os papeis dos usuarios vinculados a eles."}
           </p>
         </div>
-      </div>
-
-      <div className="overview-grid">
-        <article className="overview-card primary">
-          <span className="muted">Grupos</span>
-          <strong>{groups.length}</strong>
-          <span className="muted">Estrutura organizacional</span>
-        </article>
-        <article className="overview-card soft">
-          <span className="muted">Classificacoes</span>
-          <strong>{classifications.length}</strong>
-          <span className="muted">Catalogo de pontos</span>
-        </article>
-        <article className="overview-card earth">
-          <span className="muted">Tipos de evento</span>
-          <strong>{eventTypes.length}</strong>
-          <span className="muted">Timeline por classificacao</span>
-        </article>
-        <article className="overview-card primary">
-          <span className="muted">Especies</span>
-          <strong>{speciesCatalog.length}</strong>
-          <span className="muted">
-            {nativeSpeciesCount} nativas - {exoticSpeciesCount} exoticas
-          </span>
-        </article>
       </div>
 
       <section className="panel stack-md">
@@ -1411,12 +1501,12 @@ export function AdminPanel({
             <p className="subtitle">Escolha a listagem que deseja administrar.</p>
           </div>
           <span className="badge">
-            {SECTION_OPTIONS.find((section) => section.id === activeSection)?.label}
+            {availableSections.find((section) => section.id === activeSection)?.label}
           </span>
         </div>
 
         <div className="admin-menu">
-          {SECTION_OPTIONS.map((section) => (
+          {availableSections.map((section) => (
             <button
               key={section.id}
               className={`admin-menu-button${activeSection === section.id ? " active" : ""}`}

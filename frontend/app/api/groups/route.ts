@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentUserContext } from "@/lib/auth";
 import { withGroupLogo } from "@/lib/group-logos";
 import { ensureGroupLogoBucketExists } from "@/lib/group-logo-storage";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -20,14 +21,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getCurrentUserContext();
 
-  if (!user) {
+  if (!context) {
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
+
+  if (!context.is_super_admin) {
+    return NextResponse.json(
+      { error: "Apenas superusuarios podem criar grupos." },
+      { status: 403 },
+    );
+  }
+
+  const supabase = await createServerSupabaseClient();
 
   const contentType = request.headers.get("content-type") ?? "";
   let parsed;
