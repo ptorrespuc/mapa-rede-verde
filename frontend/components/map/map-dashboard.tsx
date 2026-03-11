@@ -110,6 +110,7 @@ export function MapDashboard({
 }: MapDashboardProps) {
   const pathname = usePathname();
   const mapRef = useRef<MapCanvasHandle | null>(null);
+  const canCreatePoints = submissionGroups.length > 0;
   const initialSelectedGroup =
     (initialGroupCode
       ? visibleGroups.find((group) => group.code === initialGroupCode)
@@ -510,7 +511,7 @@ export function MapDashboard({
             <p className="subtitle map-context-copy">{groupSubheading}</p>
           </div>
           <div className="map-header-actions compact">
-            {submissionGroups.length ? (
+            {canCreatePoints ? (
               <button className="button compact button-map-primary" onClick={openEmptyModal} type="button">
                 <Plus aria-hidden="true" size={16} />
                 Novo ponto
@@ -527,6 +528,17 @@ export function MapDashboard({
             </button>
           </div>
         </div>
+
+        {canCreatePoints ? (
+          <div className="map-creation-hint" role="note">
+            <span className="desktop-only">
+              No computador, clique com o botao direito no mapa para criar um ponto exatamente no local desejado.
+            </span>
+            <span className="mobile-only">
+              No celular, arraste o mapa ate o local desejado e toque em Novo ponto. O ponto sera criado no centro do mapa.
+            </span>
+          </div>
+        ) : null}
 
         <div className="map-controls-bar compact">
           <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
@@ -613,6 +625,16 @@ export function MapDashboard({
           points={filteredPoints}
           selectedPointId={focusedPointId}
         />
+        {canCreatePoints ? (
+          <>
+            <div aria-hidden="true" className="map-center-target">
+              <span className="map-center-target-dot" />
+            </div>
+            <div className="map-center-caption mobile-only" role="note">
+              Novo ponto usa o centro do mapa
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section className="list-card stack-md">
