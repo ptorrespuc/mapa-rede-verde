@@ -3,11 +3,13 @@ import {
   buildApiErrorResponse,
   requireAuthenticatedUser,
 } from "@/lib/server/api-route";
+import { canViewerSeePoint } from "@/lib/point-visibility";
 import {
   createPointEvent,
   deletePointEvent,
   listPointEvents,
 } from "@/lib/server/point-event-service";
+import { loadPointDetailOrThrow, loadViewerProfileId } from "@/lib/server/point-service-shared";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const POINT_EVENTS_ROUTE = "/api/points/[id]/events";
@@ -17,9 +19,24 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  let actorAuthUserId: string | null = null;
 
   try {
     const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    actorAuthUserId = user?.id ?? null;
+    const point = await loadPointDetailOrThrow(supabase, id);
+    const viewerProfileId = await loadViewerProfileId(supabase, actorAuthUserId);
+
+    if (!canViewerSeePoint(point, viewerProfileId)) {
+      throw new ApiRouteError("Ponto nao encontrado.", {
+        status: 404,
+        code: "POINT_NOT_FOUND",
+      });
+    }
+
     const events = await listPointEvents(supabase, id);
     return Response.json(events);
   } catch (error) {
@@ -28,6 +45,7 @@ export async function GET(
       {
         route: POINT_EVENTS_ROUTE,
         action: "get",
+        actorAuthUserId,
         pointId: id,
       },
       {

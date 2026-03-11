@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { filterVisiblePoints } from "@/lib/point-visibility";
 import {
   MAX_POINT_FILES,
   removeStoredPointMedia,
@@ -27,6 +28,9 @@ interface PointInput {
 
 export async function GET(request: Request) {
   const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { searchParams } = new URL(request.url);
   const classificationIdParam = searchParams.get("classificationId");
@@ -44,10 +48,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  let viewerProfileId: string | null = null;
+
+  if (user?.id) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    viewerProfileId = profile?.id ?? null;
+  }
+
   return NextResponse.json(
-    (((data ?? []) as PointRecord[]) ?? [])
-      .filter((point) => point.status !== "archived")
-      .map(withPointGroupLogo),
+    filterVisiblePoints((((data ?? []) as PointRecord[]) ?? []), viewerProfileId).map(
+      withPointGroupLogo,
+    ),
   );
 }
 

@@ -1,4 +1,5 @@
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { canViewerSeePoint } from "@/lib/point-visibility";
 import { removeStoredPointMedia } from "@/lib/point-media";
 import { getPendingPointMediaDescriptors } from "@/lib/pending-point-updates";
 import {
@@ -7,6 +8,7 @@ import {
   requireAuthenticatedUser,
 } from "@/lib/server/api-route";
 import {
+  loadViewerProfileId,
   loadActorProfileIdOrThrow,
   loadPointDetailOrThrow,
 } from "@/lib/server/point-service-shared";
@@ -24,16 +26,30 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  let actorAuthUserId: string | null = null;
 
   try {
     const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    actorAuthUserId = user?.id ?? null;
     const point = await loadPointDetailOrThrow(supabase, id);
+    const viewerProfileId = await loadViewerProfileId(supabase, actorAuthUserId);
+
+    if (!canViewerSeePoint(point, viewerProfileId)) {
+      throw new ApiRouteError("Ponto nao encontrado.", {
+        status: 404,
+        code: "POINT_NOT_FOUND",
+      });
+    }
 
     return Response.json(withPointGroupLogo(point));
   } catch (error) {
     return buildApiErrorResponse(error, {
       route: POINT_ROUTE,
       action: "get",
+      actorAuthUserId,
       pointId: id,
     });
   }

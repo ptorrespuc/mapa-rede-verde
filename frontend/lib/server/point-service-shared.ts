@@ -38,6 +38,31 @@ export async function loadPointDetailOrThrow(
   return point;
 }
 
+export async function loadViewerProfileId(
+  supabase: ServerSupabaseClient,
+  authUserId?: string | null,
+) {
+  if (!authUserId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+
+  if (error) {
+    throw fromPostgrestError(error, {
+      message: error.message,
+      status: 400,
+      code: "VIEWER_PROFILE_LOOKUP_FAILED",
+    });
+  }
+
+  return data?.id ?? null;
+}
+
 export async function loadActorProfileIdOrThrow(
   adminSupabase: AdminSupabaseClient,
   authUserId: string,

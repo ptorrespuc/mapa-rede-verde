@@ -1,6 +1,7 @@
 import { MapDashboard } from "@/components/map/map-dashboard";
 import { getCurrentUserContext } from "@/lib/auth";
 import { withGroupLogo, withPointGroupLogo } from "@/lib/group-logos";
+import { filterVisiblePoints } from "@/lib/point-visibility";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
   GroupRecord,
@@ -39,7 +40,10 @@ export default async function MapPage({
 
   return (
     <MapDashboard
-      initialPoints={((((points ?? []) as PointRecord[]) ?? [])).filter((point) => point.status !== "archived").map(withPointGroupLogo)}
+      initialPoints={filterVisiblePoints(
+        (((points ?? []) as PointRecord[]) ?? []),
+        context?.profile.id ?? null,
+      ).map(withPointGroupLogo)}
       initialGroupCode={requestedGroup?.code ?? null}
       visibleGroups={visibleGroups}
       submissionGroups={context?.submission_groups ?? []}

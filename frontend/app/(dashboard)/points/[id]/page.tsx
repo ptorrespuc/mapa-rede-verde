@@ -7,6 +7,7 @@ import { PointTimeline } from "@/components/points/point-timeline";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getPointDisplayStatusLabel, isPointPendingForReview } from "@/lib/point-display";
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { canViewerSeePoint } from "@/lib/point-visibility";
 import { getPointMedia, getPointTimeline } from "@/lib/point-timeline";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -25,11 +26,7 @@ export default async function PointDetailPage({
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
 
-  const [{ data: pointData }, timeline, pointMedia] = await Promise.all([
-    supabase.rpc("get_point", { p_point_id: id }),
-    getPointTimeline(supabase, id),
-    getPointMedia(supabase, id),
-  ]);
+  const [{ data: pointData }] = await Promise.all([supabase.rpc("get_point", { p_point_id: id })]);
 
   const rawPoint = (pointData as PointDetailRecord[] | null)?.[0] ?? null;
 
@@ -37,14 +34,19 @@ export default async function PointDetailPage({
     notFound();
   }
 
-  const point = withPointGroupLogo(rawPoint);
-  const pointPhotos = pointMedia as PointMediaRecord[];
+  if (!canViewerSeePoint(rawPoint, context?.profile.id ?? null)) {
+    notFound();
+  }
 
-  const [{ data: eventTypeData }] = await Promise.all([
+  const point = withPointGroupLogo(rawPoint);
+  const [timeline, pointMedia, { data: eventTypeData }] = await Promise.all([
+    getPointTimeline(supabase, id),
+    getPointMedia(supabase, id),
     supabase.rpc("list_point_event_types", {
       p_point_classification_id: point.classification_id,
     }),
   ]);
+  const pointPhotos = pointMedia as PointMediaRecord[];
 
   return (
     <section className="page-stack">
