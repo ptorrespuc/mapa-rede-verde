@@ -1,0 +1,23 @@
+-- Run after at least one real Supabase auth user has signed in,
+-- so public.users has been synchronized by trg_auth_user_sync.
+
+-- Example:
+-- insert into public.groups (name) values ('Urban Forestry') returning id;
+--
+-- select id, email from public.users;
+--
+-- insert into public.user_groups (user_id, group_id, role)
+-- values
+--   ('<public-user-id>', '<group-id>', 'group_admin'),
+--   ('<another-public-user-id>', '<group-id>', 'group_collaborator');
+--
+-- select *
+-- from public.create_point(
+--   '<group-id>',
+--   'tree',
+--   'Sibipiruna',
+--   'Healthy canopy near main avenue',
+--   'active',
+--   -43.2326,
+--   -22.9519
+-- );

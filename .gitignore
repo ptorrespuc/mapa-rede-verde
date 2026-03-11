@@ -1,0 +1,25 @@
+# frontend
+frontend/.next/
+frontend/.next-backup-*/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.playwright
+frontend/.env.playwright.local
+frontend/playwright-report/
+frontend/test-results/
+frontend/tsconfig.tsbuildinfo
+
+# mobile
+mobile/
+mobile/node_modules/
+mobile/.expo/
+mobile/.env.local
+
+# local backups
+frontend-backup-*/
+*.zip
+chave.txt
+
+# misc
+.DS_Store
+Thumbs.db
