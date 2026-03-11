@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { loadPendingPointReviewSummary } from "@/lib/pending-point-review";
+import { canViewerSeePoint } from "@/lib/point-visibility";
+import { loadViewerProfileId } from "@/lib/server/point-service-shared";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PointDetailRecord } from "@/types/domain";
 
@@ -10,6 +12,9 @@ export async function GET(
 ) {
   const { id } = await context.params;
   const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data, error } = await supabase.rpc("get_point", {
     p_point_id: id,
@@ -22,6 +27,12 @@ export async function GET(
   const point = (data as PointDetailRecord[] | null)?.[0];
 
   if (!point) {
+    return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
+  }
+
+  const viewerProfileId = await loadViewerProfileId(supabase, user?.id ?? null);
+
+  if (!canViewerSeePoint(point, viewerProfileId)) {
     return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
   }
 

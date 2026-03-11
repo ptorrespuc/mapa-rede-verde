@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { GroupRecord } from "@/types/domain";
@@ -11,13 +10,12 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
-  const router = useRouter();
   const canUsePublicSignup = publicCollaborationGroups.length > 0;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
   const [registerName, setRegisterName] = useState("");
@@ -26,6 +24,16 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [registerErrorMessage, setRegisterErrorMessage] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const redirectingRef = useRef(false);
+
+  function redirectToMap() {
+    if (redirectingRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    redirectingRef.current = true;
+    window.location.replace("/map");
+  }
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -40,10 +48,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
         return;
       }
 
-      startTransition(() => {
-        router.push("/map");
-        router.refresh();
-      });
+      redirectToMap();
     }
 
     void redirectIfAuthenticated();
@@ -55,22 +60,21 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
         return;
       }
 
-      startTransition(() => {
-        router.push("/map");
-        router.refresh();
-      });
+      redirectToMap();
     });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, startTransition]);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setInfoMessage(null);
     setErrorMessage(null);
+    setIsSigningIn(true);
+    redirectingRef.current = false;
 
     const supabase = createBrowserSupabaseClient();
     const { error } = await supabase.auth.signInWithPassword({
@@ -80,13 +84,11 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
     if (error) {
       setErrorMessage(error.message);
+      setIsSigningIn(false);
       return;
     }
 
-    startTransition(() => {
-      router.push("/map");
-      router.refresh();
-    });
+    redirectToMap();
   }
 
   async function handleCollaboratorSignup(event: React.FormEvent<HTMLFormElement>) {
@@ -120,10 +122,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
       if (data.session) {
         setRegisterMessage("Cadastro concluido. Redirecionando para o mapa.");
-        startTransition(() => {
-          router.push("/map");
-          router.refresh();
-        });
+        redirectToMap();
         return;
       }
 
@@ -178,8 +177,8 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
           {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
           <div className="form-actions">
-            <button className="button" type="submit" disabled={isPending}>
-              {isPending ? "Entrando..." : "Entrar"}
+            <button className="button" type="submit" disabled={isSigningIn}>
+              {isSigningIn ? "Entrando..." : "Entrar"}
             </button>
           </div>
 
