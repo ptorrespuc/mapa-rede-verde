@@ -783,6 +783,11 @@ textarea {
   gap: 0.5rem;
 }
 
+.map-header-actions-near-map {
+  margin-top: 0.55rem;
+  justify-content: flex-end;
+}
+
 .map-controls-bar {
   padding-top: 0.5rem;
   margin-top: 0.5rem;
@@ -948,6 +953,83 @@ textarea {
 .point-line-list {
   display: grid;
   gap: 0.85rem;
+}
+
+.workspace-point-list {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.workspace-point-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(21, 34, 27, 0.08);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfb 100%);
+  box-shadow: 0 10px 24px rgba(14, 32, 22, 0.04);
+}
+
+.workspace-point-row:hover {
+  border-color: rgba(36, 85, 58, 0.24);
+  box-shadow: 0 16px 32px rgba(14, 32, 22, 0.08);
+}
+
+.workspace-point-color {
+  width: 10px;
+  align-self: stretch;
+  min-height: 100%;
+  border-radius: 999px;
+}
+
+.workspace-point-content {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.workspace-point-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+}
+
+.workspace-point-title-block {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.workspace-point-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.workspace-point-time {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.workspace-point-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.workspace-point-actions .button-ghost {
+  min-height: 36px;
+  padding: 0.5rem 0.85rem;
 }
 
 .point-line-item {
@@ -1498,6 +1580,10 @@ textarea {
     width: 100%;
   }
 
+  .map-header-actions-near-map {
+    margin-top: 0.45rem;
+  }
+
   .map-controls-bar {
     display: none;
   }
@@ -1515,6 +1601,24 @@ textarea {
   .point-line-item {
     grid-template-columns: auto 10px minmax(0, 1fr);
     align-items: flex-start;
+  }
+
+  .workspace-point-row {
+    grid-template-columns: 10px minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  .workspace-point-content,
+  .workspace-point-actions {
+    grid-column: 2;
+  }
+
+  .workspace-point-actions {
+    justify-content: flex-start;
+  }
+
+  .workspace-point-time {
+    white-space: normal;
   }
 
   .point-line-main,
@@ -1683,6 +1787,7 @@ textarea {
   }
 
   .point-line-item,
+  .workspace-point-row,
   .pagination-row {
     width: 100%;
   }

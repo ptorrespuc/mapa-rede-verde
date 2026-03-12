@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+
 import { MapDashboard } from "@/components/map/map-dashboard";
 import { getCurrentUserContext } from "@/lib/auth";
 import { withGroupLogo, withPointGroupLogo } from "@/lib/group-logos";
@@ -16,10 +18,15 @@ export default async function MapPage({
   searchParams?: Promise<{ grupo?: string; group?: string }>;
 }) {
   const context = await getCurrentUserContext();
+  const cookieStore = await cookies();
   const supabase = await createServerSupabaseClient();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const requestedGroupCode =
-    resolvedSearchParams?.grupo?.trim() || resolvedSearchParams?.group?.trim() || null;
+  const savedMapScope = cookieStore.get("map_scope")?.value?.trim() || null;
+  const requestedMapScope =
+    resolvedSearchParams?.grupo?.trim() ||
+    resolvedSearchParams?.group?.trim() ||
+    savedMapScope ||
+    null;
 
   const [{ data: groups }, { data: classifications }, { data: speciesCatalog }] = await Promise.all([
     supabase.rpc("list_groups"),
@@ -32,10 +39,14 @@ export default async function MapPage({
     visibleGroups.filter((group) => Boolean(group.my_role)).length === 1
       ? visibleGroups.find((group) => Boolean(group.my_role)) ?? null
       : null;
-  const requestedGroup =
-    (requestedGroupCode
-      ? visibleGroups.find((group) => group.code === requestedGroupCode)
-      : preferredGroup) ?? null;
+  const requestedAllGroups = requestedMapScope === "all";
+  let requestedGroup: GroupRecord | null = null;
+
+  if (!requestedAllGroups) {
+    requestedGroup = requestedMapScope
+      ? visibleGroups.find((group) => group.code === requestedMapScope) ?? preferredGroup
+      : preferredGroup;
+  }
 
   const { data: points } = await supabase.rpc("list_points", {
     p_point_classification_id: null,
@@ -49,6 +60,7 @@ export default async function MapPage({
         context?.profile.id ?? null,
       ).map(withPointGroupLogo)}
       initialGroupCode={requestedGroup?.code ?? null}
+      initialGroupSelectionWasImplicit={!requestedMapScope && Boolean(preferredGroup)}
       visibleGroups={visibleGroups}
       submissionGroups={context?.submission_groups ?? []}
       approvableGroups={context?.approvable_groups ?? []}

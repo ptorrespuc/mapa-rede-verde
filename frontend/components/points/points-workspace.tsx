@@ -150,6 +150,7 @@ export function PointsWorkspace({
     return points.map((point) => ({
       ...point,
       displayStatusLabel: getPointDisplayStatusLabel(point),
+      formattedUpdatedAt: new Date(point.updated_at).toLocaleString("pt-BR"),
       approvalLabel:
         point.approval_status === "approved"
           ? "aprovado"
@@ -242,29 +243,39 @@ export function PointsWorkspace({
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
       <section className="list-card stack-md">
-        <div className="point-line-list">
+        <div className="workspace-point-list">
           {pointRows.length ? (
             pointRows.map((point) => (
-              <article className="point-line-item point-line-item-dense" key={point.id}>
+              <article className="workspace-point-row" key={point.id}>
                 <span
-                  className="point-line-color"
+                  className="workspace-point-color"
                   style={{ backgroundColor: getPointDisplayColor(point) }}
                 />
-                <div className="stack-xs">
-                  <strong className="point-line-title">{point.title}</strong>
-                  <span className="muted">
-                    {point.group_name} | {point.classification_name} | {point.displayStatusLabel}
-                  </span>
+                <div className="workspace-point-content">
+                  <div className="workspace-point-header">
+                    <div className="workspace-point-title-block">
+                      <strong className="point-line-title">{point.title}</strong>
+                      <div className="workspace-point-meta">
+                        <span>{point.group_name}</span>
+                        <span>{point.classification_name}</span>
+                        {point.classification_requires_species && point.species_name ? (
+                          <span>{point.species_name}</span>
+                        ) : null}
+                        <span>{point.displayStatusLabel}</span>
+                      </div>
+                    </div>
+                    <time className="workspace-point-time" dateTime={point.updated_at}>
+                      Atualizado em {point.formattedUpdatedAt}
+                    </time>
+                  </div>
+
+                  <div className="point-line-badges">
+                    <span className="badge">{point.approvalLabel}</span>
+                    {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
+                    {point.viewer_is_creator ? <span className="badge">meu</span> : null}
+                  </div>
                 </div>
-                <div className="point-line-badges">
-                  <span className="badge">{point.approvalLabel}</span>
-                  {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
-                  {point.viewer_is_creator ? <span className="badge">meu</span> : null}
-                </div>
-                <span className="muted point-line-group">
-                  {new Date(point.updated_at).toLocaleString("pt-BR")}
-                </span>
-                <span className="point-line-actions">
+                <div className="workspace-point-actions">
                   {point.viewer_can_approve &&
                   (point.approval_status === "pending" || point.has_pending_update) ? (
                     <>
@@ -287,7 +298,7 @@ export function PointsWorkspace({
                   <Link className="button-ghost" href={`/points/${point.id}`}>
                     Abrir
                   </Link>
-                </span>
+                </div>
               </article>
             ))
           ) : (

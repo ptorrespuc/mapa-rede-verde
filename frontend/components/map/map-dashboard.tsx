@@ -36,6 +36,7 @@ import {
 interface MapDashboardProps {
   initialPoints: PointRecord[];
   initialGroupCode?: string | null;
+  initialGroupSelectionWasImplicit?: boolean;
   visibleGroups: GroupRecord[];
   submissionGroups: GroupRecord[];
   approvableGroups: GroupRecord[];
@@ -102,6 +103,7 @@ function formatDistance(distanceInMeters: number | null) {
 export function MapDashboard({
   initialPoints,
   initialGroupCode,
+  initialGroupSelectionWasImplicit = false,
   visibleGroups,
   submissionGroups,
   approvableGroups,
@@ -124,6 +126,9 @@ export function MapDashboard({
   const [filter, setFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [isGroupSelectionImplicit, setIsGroupSelectionImplicit] = useState(
+    initialGroupSelectionWasImplicit,
+  );
   const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -218,8 +223,23 @@ export function MapDashboard({
     window.history.replaceState(window.history.state, "", `${pathname}${url.search}`);
   }
 
+  function syncGroupCookie(nextGroupId: string) {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const nextGroupCode =
+      nextGroupId === "all"
+        ? "all"
+        : visibleGroups.find((group) => group.id === nextGroupId)?.code ?? "all";
+
+    document.cookie = `map_scope=${encodeURIComponent(nextGroupCode)}; path=/; max-age=31536000; samesite=lax`;
+  }
+
   function applyGroupSelection(nextGroupId: string) {
     setGroupFilter(nextGroupId);
+    setIsGroupSelectionImplicit(false);
+    syncGroupCookie(nextGroupId);
     syncGroupUrl(nextGroupId);
   }
 
@@ -474,6 +494,14 @@ export function MapDashboard({
   const groupSubheading = currentGroupSummary
     ? null
     : `${visibleGroups.length} grupos no filtro atual`;
+  const desktopGroupSwitcherLabel =
+    groupFilter === "all"
+      ? "Todos os grupos visiveis"
+      : isGroupSelectionImplicit
+        ? "Escolher grupo"
+        : "Trocar grupo";
+  const mobileGroupSwitcherLabel =
+    groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
 
   useEffect(() => {
     if (page !== safePage) {
@@ -516,12 +544,8 @@ export function MapDashboard({
                   type="button"
                 >
                   <Users aria-hidden="true" size={15} />
-                  <span className="desktop-only">
-                    {groupFilter === "all" ? "Todos os grupos visiveis" : "Trocar grupo"}
-                  </span>
-                  <span className="mobile-only">
-                    {groupFilter === "all" ? "Grupos" : "Trocar grupo"}
-                  </span>
+                  <span className="desktop-only">{desktopGroupSwitcherLabel}</span>
+                  <span className="mobile-only">{mobileGroupSwitcherLabel}</span>
                 </button>
                 <button
                   className="button-ghost compact map-mobile-tools-toggle"
@@ -547,35 +571,7 @@ export function MapDashboard({
               </div>
             )}
           </div>
-          <div className="map-header-actions compact">
-            {canCreatePoints ? (
-              <button className="button compact button-map-primary" onClick={openEmptyModal} type="button">
-                <Plus aria-hidden="true" size={16} />
-                Novo ponto
-              </button>
-            ) : null}
-            <button
-              className="button-ghost compact"
-              disabled={isCenteringOnCurrentLocation}
-              onClick={() => void handleCenterOnCurrentLocation()}
-              type="button"
-            >
-              <LocateFixed aria-hidden="true" size={16} />
-              {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posicao"}
-            </button>
-          </div>
         </div>
-
-        {canCreatePoints ? (
-          <div className="map-creation-hint" role="note">
-            <span className="desktop-only">
-              No computador, clique com o botao direito no mapa para criar um ponto exatamente no local desejado.
-            </span>
-            <span className="mobile-only">
-              No celular, arraste o mapa ate o local desejado e toque em Novo ponto. O ponto sera criado no centro do mapa.
-            </span>
-          </div>
-        ) : null}
 
         <div className="map-controls-bar compact">
           <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
@@ -607,6 +603,35 @@ export function MapDashboard({
               <span>Exibir somente pontos pendentes</span>
             </label>
           ) : null}
+        </div>
+
+        {canCreatePoints ? (
+          <div className="map-creation-hint" role="note">
+            <span className="desktop-only">
+              No computador, clique com o botao direito no mapa para criar um ponto exatamente no local desejado.
+            </span>
+            <span className="mobile-only">
+              No celular, arraste o mapa ate o local desejado e toque em Novo ponto. O ponto sera criado no centro do mapa.
+            </span>
+          </div>
+        ) : null}
+
+        <div className="map-header-actions compact map-header-actions-near-map">
+          {canCreatePoints ? (
+            <button className="button compact button-map-primary" onClick={openEmptyModal} type="button">
+              <Plus aria-hidden="true" size={16} />
+              Novo ponto
+            </button>
+          ) : null}
+          <button
+            className="button-ghost compact"
+            disabled={isCenteringOnCurrentLocation}
+            onClick={() => void handleCenterOnCurrentLocation()}
+            type="button"
+          >
+            <LocateFixed aria-hidden="true" size={16} />
+            {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posicao"}
+          </button>
         </div>
       </section>
 

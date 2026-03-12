@@ -16,6 +16,7 @@ export function SignOutButton({ className = "button-ghost" }: SignOutButtonProps
   async function handleSignOut() {
     const supabase = createBrowserSupabaseClient();
     await supabase.auth.signOut();
+    document.cookie = "map_scope=; path=/; max-age=0; samesite=lax";
 
     startTransition(() => {
       router.push("/login");
