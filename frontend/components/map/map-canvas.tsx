@@ -18,6 +18,7 @@ interface MapCanvasProps {
   selectedPointId?: string | null;
   onMapContextMenu?: (coordinates: { longitude: number; latitude: number }) => void;
   onSelectPoint?: (point: PointRecord) => void;
+  onOpenPointSummary?: (point: PointRecord) => void;
   onCenterChange?: (center: { latitude: number; longitude: number }) => void;
 }
 
@@ -29,7 +30,11 @@ export interface MapCanvasHandle {
 
 const defaultCenter = { lng: -43.2096, lat: -22.9035 };
 
-function createPopupContent(point: PointRecord, previewMedia?: PointMediaRecord | null) {
+function createPopupContent(
+  point: PointRecord,
+  previewMedia?: PointMediaRecord | null,
+  onOpenSummary?: (() => void) | null,
+) {
   const wrapper = document.createElement("div");
   wrapper.style.maxWidth = "240px";
   const title = document.createElement("strong");
@@ -73,6 +78,30 @@ function createPopupContent(point: PointRecord, previewMedia?: PointMediaRecord 
     wrapper.appendChild(species);
   }
 
+  if (onOpenSummary) {
+    const actions = document.createElement("div");
+    actions.style.marginTop = "0.7rem";
+
+    const summaryButton = document.createElement("button");
+    summaryButton.type = "button";
+    summaryButton.textContent = "Ver resumo";
+    summaryButton.style.display = "inline-flex";
+    summaryButton.style.alignItems = "center";
+    summaryButton.style.justifyContent = "center";
+    summaryButton.style.minHeight = "34px";
+    summaryButton.style.padding = "0.45rem 0.8rem";
+    summaryButton.style.borderRadius = "999px";
+    summaryButton.style.border = "1px solid rgba(21, 34, 27, 0.12)";
+    summaryButton.style.background = "#ffffff";
+    summaryButton.style.color = "#15221b";
+    summaryButton.style.fontWeight = "600";
+    summaryButton.style.cursor = "pointer";
+    summaryButton.addEventListener("click", onOpenSummary);
+
+    actions.appendChild(summaryButton);
+    wrapper.appendChild(actions);
+  }
+
   return wrapper;
 }
 
@@ -94,6 +123,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     selectedPointId,
     onMapContextMenu,
     onSelectPoint,
+    onOpenPointSummary,
     onCenterChange,
   },
   ref,
@@ -109,6 +139,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const searchLocationMarkerRef = useRef<google.maps.Marker | null>(null);
   const pointMediaCacheRef = useRef<Map<string, PointMediaRecord[]>>(new Map());
   const onSelectPointRef = useRef(onSelectPoint);
+  const onOpenPointSummaryRef = useRef(onOpenPointSummary);
   const onCenterChangeRef = useRef(onCenterChange);
   const activePopupPointIdRef = useRef<string | null>(null);
   const contextMenuListenerRef = useRef<google.maps.MapsEventListener | null>(null);
@@ -121,6 +152,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   useEffect(() => {
     onSelectPointRef.current = onSelectPoint;
   }, [onSelectPoint]);
+
+  useEffect(() => {
+    onOpenPointSummaryRef.current = onOpenPointSummary;
+  }, [onOpenPointSummary]);
 
   useEffect(() => {
     onCenterChangeRef.current = onCenterChange;
@@ -550,7 +585,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     activePopupPointIdRef.current = point.id;
 
     const cachedMedia = pointMediaCacheRef.current.get(point.id) ?? null;
-    infoWindow.setContent(createPopupContent(point, cachedMedia?.[0] ?? null));
+    infoWindow.setContent(
+      createPopupContent(point, cachedMedia?.[0] ?? null, () => {
+        onOpenPointSummaryRef.current?.(point);
+      }),
+    );
     infoWindow.open({
       anchor: marker,
       map,
@@ -568,7 +607,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         return;
       }
 
-      infoWindow.setContent(createPopupContent(point, media[0] ?? null));
+      infoWindow.setContent(
+        createPopupContent(point, media[0] ?? null, () => {
+          onOpenPointSummaryRef.current?.(point);
+        }),
+      );
       infoWindow.open({
         anchor: marker,
         map,

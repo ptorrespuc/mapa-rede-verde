@@ -539,7 +539,7 @@ export function MapDashboard({
             {visibleGroups.length > 1 ? (
               <div className="map-group-switch-row">
                 <button
-                  className="button-ghost compact"
+                  className="button-ghost compact group-switch-button"
                   onClick={() => setIsGroupPickerOpen(true)}
                   type="button"
                 >
@@ -642,10 +642,8 @@ export function MapDashboard({
           ref={mapRef}
           onCenterChange={handleMapCenterChange}
           onMapContextMenu={handleMapContextMenu}
-          onSelectPoint={(point) => {
-            setFocusedPointId(point.id);
-            setQuickViewPoint(point);
-          }}
+          onOpenPointSummary={(point) => setQuickViewPoint(point)}
+          onSelectPoint={(point) => setFocusedPointId(point.id)}
           points={filteredPoints}
           selectedPointId={focusedPointId}
         />

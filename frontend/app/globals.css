@@ -767,6 +767,12 @@ textarea {
   white-space: nowrap;
 }
 
+.group-switch-button {
+  min-height: 34px;
+  padding: 0.48rem 0.72rem;
+  font-size: 0.88rem;
+}
+
 .map-header-actions,
 .map-controls-bar {
   display: flex;

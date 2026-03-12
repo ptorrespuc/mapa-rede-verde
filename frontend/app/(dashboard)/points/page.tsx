@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
+
 import { PointsWorkspace } from "@/components/points/points-workspace";
 import { requireUserContext } from "@/lib/auth";
 import { withPointGroupLogo } from "@/lib/group-logos";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { PointClassificationRecord, PointRecord } from "@/types/domain";
+import type { GroupRecord, PointClassificationRecord, PointRecord } from "@/types/domain";
 
 export default async function PointsPage({
   searchParams,
@@ -10,14 +12,28 @@ export default async function PointsPage({
   searchParams?: Promise<{ grupo?: string; group?: string }>;
 }) {
   const context = await requireUserContext();
+  const cookieStore = await cookies();
   const supabase = await createServerSupabaseClient();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const requestedGroupCode =
-    resolvedSearchParams?.grupo?.trim() || resolvedSearchParams?.group?.trim() || null;
-  const requestedGroup =
-    (requestedGroupCode
-      ? context.groups.find((group) => group.code === requestedGroupCode)
-      : null) ?? null;
+  const savedMapScope = cookieStore.get("map_scope")?.value?.trim() || null;
+  const requestedMapScope =
+    resolvedSearchParams?.grupo?.trim() ||
+    resolvedSearchParams?.group?.trim() ||
+    savedMapScope ||
+    null;
+  const visibleGroups = context.groups;
+  const preferredGroup =
+    visibleGroups.filter((group) => Boolean(group.my_role)).length === 1
+      ? visibleGroups.find((group) => Boolean(group.my_role)) ?? null
+      : null;
+  const requestedAllGroups = requestedMapScope === "all";
+  let requestedGroup: GroupRecord | null = null;
+
+  if (!requestedAllGroups) {
+    requestedGroup = requestedMapScope
+      ? visibleGroups.find((group) => group.code === requestedMapScope) ?? preferredGroup
+      : preferredGroup;
+  }
   const defaultMineOnly =
     context.submission_groups.length > 0 &&
     context.submission_groups.every(
@@ -39,9 +55,10 @@ export default async function PointsPage({
       approvableGroups={context.approvable_groups}
       classifications={(classifications ?? []) as PointClassificationRecord[]}
       initialGroupCode={requestedGroup?.code ?? null}
+      initialGroupSelectionWasImplicit={!requestedMapScope && Boolean(preferredGroup)}
       initialPoints={((((points ?? []) as PointRecord[]) ?? [])).filter((point) => point.status !== "archived").map(withPointGroupLogo)}
       submissionGroups={context.submission_groups}
-      visibleGroups={context.groups}
+      visibleGroups={visibleGroups}
     />
   );
 }

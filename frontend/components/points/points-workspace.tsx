@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PointFilters } from "@/components/points/point-filters";
@@ -13,6 +14,7 @@ import type { GroupRecord, PointClassificationRecord, PointRecord } from "@/type
 interface PointsWorkspaceProps {
   initialPoints: PointRecord[];
   initialGroupCode?: string | null;
+  initialGroupSelectionWasImplicit?: boolean;
   visibleGroups: GroupRecord[];
   submissionGroups: GroupRecord[];
   approvableGroups: GroupRecord[];
@@ -22,6 +24,7 @@ interface PointsWorkspaceProps {
 export function PointsWorkspace({
   initialPoints,
   initialGroupCode,
+  initialGroupSelectionWasImplicit = false,
   visibleGroups,
   submissionGroups,
   approvableGroups,
@@ -41,11 +44,19 @@ export function PointsWorkspace({
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
   const [mineOnly, setMineOnly] = useState(defaultMineOnly);
+  const [isGroupSelectionImplicit, setIsGroupSelectionImplicit] = useState(
+    initialGroupSelectionWasImplicit,
+  );
+  const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasHydrated = useRef(false);
   const selectedGroup = visibleGroups.find((group) => group.id === groupFilter) ?? null;
-  const groupHeading = selectedGroup?.name ?? "Todos os grupos visiveis";
+  const currentGroupSummary = selectedGroup ?? (visibleGroups.length === 1 ? visibleGroups[0] : null);
+  const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visiveis";
+  const groupSubheading = currentGroupSummary
+    ? null
+    : `${visibleGroups.length} grupos no filtro atual`;
   const canCreateForSelectedGroup =
     (selectedGroup
       ? submissionGroups.some((group) => group.id === selectedGroup.id)
@@ -114,8 +125,23 @@ export function PointsWorkspace({
     window.history.replaceState(window.history.state, "", `${pathname}${url.search}`);
   }
 
+  function syncGroupCookie(nextGroupId: string) {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const nextGroupCode =
+      nextGroupId === "all"
+        ? "all"
+        : visibleGroups.find((group) => group.id === nextGroupId)?.code ?? "all";
+
+    document.cookie = `map_scope=${encodeURIComponent(nextGroupCode)}; path=/; max-age=31536000; samesite=lax`;
+  }
+
   function handleGroupChange(nextGroupId: string) {
     setGroupFilter(nextGroupId);
+    setIsGroupSelectionImplicit(false);
+    syncGroupCookie(nextGroupId);
     syncGroupUrl(nextGroupId);
   }
 
@@ -159,43 +185,69 @@ export function PointsWorkspace({
             : "rejeitado",
     }));
   }, [points]);
+  const desktopGroupSwitcherLabel =
+    groupFilter === "all"
+      ? "Todos os grupos visiveis"
+      : isGroupSelectionImplicit
+        ? "Escolher grupo"
+        : "Trocar grupo";
+  const mobileGroupSwitcherLabel =
+    groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
 
   return (
     <section className="page-stack">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Pontos</p>
-          <div className="group-heading-row">
-            {selectedGroup?.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt={`Logo de ${selectedGroup.name}`}
-                className="group-logo"
-                src={selectedGroup.logo_url}
-              />
+      <section className="panel map-header-panel">
+        <div className="map-header-row compact">
+          <div className="map-header-copy compact">
+            <p className="eyebrow">Pontos</p>
+            <div className="group-heading-row">
+              {currentGroupSummary?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt={`Logo de ${currentGroupSummary.name}`}
+                  className="group-logo group-logo-large"
+                  src={currentGroupSummary.logo_url}
+                />
+              ) : null}
+              <h1>{groupHeading}</h1>
+            </div>
+            {groupSubheading ? <p className="subtitle map-context-copy">{groupSubheading}</p> : null}
+            {visibleGroups.length > 1 ? (
+              <div className="map-group-switch-row">
+                <button
+                  className="button-ghost compact group-switch-button"
+                  onClick={() => setIsGroupPickerOpen(true)}
+                  type="button"
+                >
+                  <Users aria-hidden="true" size={15} />
+                  <span className="desktop-only">{desktopGroupSwitcherLabel}</span>
+                  <span className="mobile-only">{mobileGroupSwitcherLabel}</span>
+                </button>
+              </div>
             ) : null}
-            <h1>{groupHeading}</h1>
+            <p className="subtitle">
+              {hasApprovalScope
+                ? "Consulte registros, acompanhe pendencias e aprove os pontos do grupo selecionado."
+                : "Consulte os pontos do grupo selecionado e acompanhe suas pendencias."}
+            </p>
           </div>
-          <p className="subtitle">
-            {hasApprovalScope
-              ? "Consulte registros, acompanhe pendencias e aprove os pontos do grupo selecionado."
-              : "Consulte os pontos do grupo selecionado e acompanhe suas pendencias."}
-          </p>
+          <div className="button-row">
+            <span className="badge">{isLoading ? "Carregando..." : `${pointRows.length} pontos`}</span>
+            {canCreateForSelectedGroup ? (
+              <Link
+                className="button-secondary"
+                href={
+                  selectedGroup?.code
+                    ? `/points/new?grupo=${encodeURIComponent(selectedGroup.code)}`
+                    : "/points/new"
+                }
+              >
+                Novo ponto
+              </Link>
+            ) : null}
+          </div>
         </div>
-        <div className="button-row">
-          <span className="badge">{isLoading ? "Carregando..." : `${pointRows.length} pontos`}</span>
-          {canCreateForSelectedGroup ? (
-            <Link
-              className="button-secondary"
-              href={
-                selectedGroup?.code ? `/points/new?grupo=${encodeURIComponent(selectedGroup.code)}` : "/points/new"
-              }
-            >
-              Novo ponto
-            </Link>
-          ) : null}
-        </div>
-      </div>
+      </section>
 
       <section className="panel stack-md">
         <div className="map-controls-bar compact">
@@ -204,23 +256,6 @@ export function PointsWorkspace({
             value={classificationFilter}
             onChange={setClassificationFilter}
           />
-          {visibleGroups.length > 1 ? (
-            <div className="field toolbar-field">
-              <label htmlFor="points-group-filter">Grupo</label>
-              <select
-                id="points-group-filter"
-                value={groupFilter}
-                onChange={(event) => handleGroupChange(event.target.value)}
-              >
-                <option value="all">Todos os grupos visiveis</option>
-                {visibleGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
           <label className="inline-toggle">
             <input
               checked={pendingOnly}
@@ -306,6 +341,61 @@ export function PointsWorkspace({
           )}
         </div>
       </section>
+
+      {isGroupPickerOpen ? (
+        <div aria-modal="true" className="modal-overlay" role="dialog">
+          <div className="modal-card modal-card-compact stack-md">
+            <div className="modal-header">
+              <div className="modal-header-top">
+                <div className="stack-xs">
+                  <h2 className="section-title">Escolher grupo</h2>
+                  <p className="subtitle">Troque o escopo visivel da listagem.</p>
+                </div>
+                <button
+                  aria-label="Fechar janela"
+                  className="modal-close-button"
+                  onClick={() => setIsGroupPickerOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="list">
+              <button
+                className={`list-row list-row-button${groupFilter === "all" ? " active" : ""}`}
+                onClick={() => {
+                  handleGroupChange("all");
+                  setIsGroupPickerOpen(false);
+                }}
+                type="button"
+              >
+                <div className="stack-xs">
+                  <strong>Todos os grupos visiveis</strong>
+                  <span className="muted">Exibe os grupos acessiveis no seu perfil atual.</span>
+                </div>
+              </button>
+              {visibleGroups.map((group) => (
+                <button
+                  className={`list-row list-row-button${groupFilter === group.id ? " active" : ""}`}
+                  key={group.id}
+                  onClick={() => {
+                    handleGroupChange(group.id);
+                    setIsGroupPickerOpen(false);
+                  }}
+                  type="button"
+                >
+                  <div className="stack-xs">
+                    <strong>{group.name}</strong>
+                    <span className="muted">{group.code}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
