@@ -1038,6 +1038,18 @@ textarea {
   padding: 0.5rem 0.85rem;
 }
 
+.icon-button {
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.icon-button svg {
+  flex-shrink: 0;
+}
+
 .point-line-item {
   display: grid;
   grid-template-columns: auto 10px minmax(0, 1.35fr) minmax(150px, 0.7fr) auto;
@@ -1445,6 +1457,31 @@ textarea {
   margin-top: 0;
 }
 
+.point-map-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.point-map-preview-shell {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  border-radius: 18px;
+  border: 1px solid rgba(21, 34, 27, 0.08);
+  background: #eef3ef;
+}
+
+.point-map-preview-canvas {
+  width: 100%;
+  min-height: 320px;
+}
+
+.point-map-preview-state {
+  inset: 0;
+}
+
 .form-section {
   padding: 1rem;
   border: 1px solid rgba(21, 34, 27, 0.08);
@@ -1473,8 +1510,57 @@ textarea {
 }
 
 .button-inline-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 38px;
   padding: 0.55rem 0.85rem;
+}
+
+.point-detail-summary-grid {
+  grid-template-columns: minmax(0, 1.9fr) minmax(240px, 0.9fr);
+}
+
+.point-detail-location-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.point-detail-location-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.point-detail-coordinate-chip {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 160px;
+}
+
+.point-detail-coordinate-chip strong {
+  display: block;
+  margin-top: 0;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.point-detail-owner-card {
+  display: grid;
+  gap: 0.3rem;
+  align-content: center;
+}
+
+.point-detail-owner-card strong {
+  font-size: 1.45rem;
+}
+
+.detail-map-preview-button {
+  width: auto;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .detail-value {
@@ -1559,6 +1645,10 @@ textarea {
   .stat-grid,
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .point-detail-summary-grid {
+    grid-template-columns: 1fr;
   }
 
   .split-layout {
@@ -1768,6 +1858,16 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .point-detail-location-row {
+    align-items: flex-start;
+  }
+
+  .detail-map-preview-button {
+    width: 100%;
+    margin-left: 0;
+    white-space: normal;
+  }
+
   .point-photo-gallery {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
@@ -1802,6 +1902,10 @@ textarea {
   .button-secondary,
   .button-ghost {
     width: 100%;
+  }
+
+  .icon-button {
+    width: 38px;
   }
 
   .modal-overlay {

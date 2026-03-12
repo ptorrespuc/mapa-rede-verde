@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeletePointButton } from "@/components/points/delete-point-button";
+import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
 import { PointReviewActions } from "@/components/points/point-review-actions";
 import { PointTimeline } from "@/components/points/point-timeline";
 import { getCurrentUserContext } from "@/lib/auth";
@@ -82,16 +83,27 @@ export default async function PointDetailPage({
         </div>
       </div>
 
-      <div className="stat-grid">
-        <article className="stat-card">
-          <span className="muted">Latitude</span>
-          <strong>{point.latitude.toFixed(6)}</strong>
+      <div className="stat-grid point-detail-summary-grid">
+        <article className="stat-card point-detail-location-card">
+          <span className="muted">Localizacao</span>
+          <div className="point-detail-location-row">
+            <div className="point-detail-coordinate-chip">
+              <span className="muted">Latitude</span>
+              <strong>{point.latitude.toFixed(6)}</strong>
+            </div>
+            <div className="point-detail-coordinate-chip">
+              <span className="muted">Longitude</span>
+              <strong>{point.longitude.toFixed(6)}</strong>
+            </div>
+            <PointMapPreviewTrigger
+              className="button-inline-ghost button-ghost detail-map-preview-button"
+              label="Visualizar este ponto no mapa"
+              point={point}
+              variant="text"
+            />
+          </div>
         </article>
-        <article className="stat-card">
-          <span className="muted">Longitude</span>
-          <strong>{point.longitude.toFixed(6)}</strong>
-        </article>
-        <article className="stat-card">
+        <article className="stat-card point-detail-owner-card">
           <span className="muted">Criado por</span>
           <strong>{point.created_by_name}</strong>
         </article>

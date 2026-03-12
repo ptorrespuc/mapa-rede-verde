@@ -7,6 +7,7 @@ import { Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PointFilters } from "@/components/points/point-filters";
+import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
 import { apiClient } from "@/lib/api-client";
 import { getPointDisplayColor, getPointDisplayStatusLabel } from "@/lib/point-display";
 import type { GroupRecord, PointClassificationRecord, PointRecord } from "@/types/domain";
@@ -330,6 +331,12 @@ export function PointsWorkspace({
                       </button>
                     </>
                   ) : null}
+                  <PointMapPreviewTrigger
+                    className="button-ghost icon-button"
+                    label={`Visualizar ${point.title} no mapa`}
+                    point={point}
+                    variant="icon"
+                  />
                   <Link className="button-ghost" href={`/points/${point.id}`}>
                     Abrir
                   </Link>
