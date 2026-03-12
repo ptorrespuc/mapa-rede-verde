@@ -403,6 +403,14 @@ textarea {
   border: 1px solid rgba(21, 34, 27, 0.08);
 }
 
+.topbar-account-menu {
+  position: relative;
+}
+
+.topbar-account-trigger {
+  cursor: pointer;
+}
+
 .topbar-user-inline {
   display: flex;
   align-items: center;
@@ -420,6 +428,52 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.topbar-account-chevron {
+  transition: transform 160ms ease;
+}
+
+.topbar-account-chevron.open {
+  transform: rotate(180deg);
+}
+
+.topbar-account-dropdown {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 210px;
+  padding: 0.45rem;
+  border: 1px solid rgba(21, 34, 27, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(14, 32, 22, 0.14);
+  z-index: 35;
+}
+
+.topbar-account-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.topbar-account-item:hover {
+  background: rgba(36, 85, 58, 0.08);
+}
+
+.topbar-account-item.danger {
+  color: var(--danger);
 }
 
 .nav {
@@ -601,6 +655,17 @@ textarea {
   background: #fbfcfb;
 }
 
+.list-row-button {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.list-row-button.active {
+  border-color: rgba(36, 85, 58, 0.2);
+  background: rgba(36, 85, 58, 0.08);
+}
+
 .list-spaced {
   margin-top: 1rem;
 }
@@ -690,6 +755,18 @@ textarea {
   margin: 0;
 }
 
+.map-group-switch-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.map-group-switch-row .button-ghost {
+  white-space: nowrap;
+}
+
 .map-header-actions,
 .map-controls-bar {
   display: flex;
@@ -716,6 +793,10 @@ textarea {
   padding-top: 0.45rem;
   margin-top: 0.45rem;
   gap: 0.5rem;
+}
+
+.map-mobile-tools-toggle {
+  display: none;
 }
 
 .map-search-form {
@@ -1218,6 +1299,10 @@ textarea {
   box-shadow: 0 18px 46px rgba(14, 32, 22, 0.16);
 }
 
+.modal-card-compact {
+  width: min(100%, 520px);
+}
+
 .modal-header {
   display: grid;
   gap: 0.4rem;
@@ -1363,6 +1448,11 @@ textarea {
     width: 100%;
   }
 
+  .topbar-account-dropdown {
+    right: auto;
+    left: 0;
+  }
+
   .topbar-user-inline {
     white-space: normal;
   }
@@ -1408,6 +1498,10 @@ textarea {
     width: 100%;
   }
 
+  .map-controls-bar {
+    display: none;
+  }
+
   .map-controls-bar .field,
   .toolbar-field,
   .map-header-actions .button-secondary,
@@ -1439,6 +1533,27 @@ textarea {
 
   .map-header-copy.compact h1 {
     font-size: 1.3rem;
+  }
+
+  .map-group-switch-row {
+    margin-top: 0.25rem;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .map-group-switch-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .map-mobile-tools-toggle {
+    display: inline-flex;
+  }
+
+  .map-group-switch-row .button-ghost {
+    min-height: 34px;
+    padding: 0.48rem 0.72rem;
+    font-size: 0.88rem;
   }
 
   .map-canvas,
@@ -1486,6 +1601,17 @@ textarea {
     border-radius: 18px;
   }
 
+  .topbar-account-menu {
+    width: 100%;
+  }
+
+  .topbar-account-dropdown {
+    position: static;
+    width: 100%;
+    margin-top: 0.5rem;
+    box-shadow: none;
+  }
+
   .topbar-user-inline {
     flex-wrap: wrap;
     justify-content: flex-start;
@@ -1496,6 +1622,24 @@ textarea {
   .stat-card,
   .list-card {
     border-radius: 20px;
+  }
+
+  .map-header-panel {
+    padding: 0.75rem;
+  }
+
+  .map-header-row.compact {
+    gap: 0.55rem;
+  }
+
+  .map-header-copy.compact {
+    gap: 0.12rem;
+  }
+
+  .map-creation-hint {
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.88rem;
   }
 
   .input-grid.two {

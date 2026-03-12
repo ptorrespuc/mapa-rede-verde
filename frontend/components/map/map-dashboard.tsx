@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Eye,
+  Filter,
   LocateFixed,
   MapPin,
   Plus,
@@ -13,6 +14,7 @@ import {
   ClipboardCheck,
   Construction,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -122,9 +124,8 @@ export function MapDashboard({
   const [filter, setFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
-  const [isGroupSwitcherOpen, setIsGroupSwitcherOpen] = useState(
-    !initialSelectedGroup || visibleGroups.length <= 1,
-  );
+  const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -143,8 +144,6 @@ export function MapDashboard({
   const selectedVisibleGroup = visibleGroups.find((group) => group.id === groupFilter) ?? null;
   const currentGroupSummary =
     selectedVisibleGroup ?? (visibleGroups.length === 1 ? visibleGroups[0] : null);
-  const showGroupFilterSelect =
-    visibleGroups.length > 1 && (isGroupSwitcherOpen || groupFilter === "all");
   const defaultSubmissionGroupId =
     submissionGroups.find((group) => group.id === groupFilter)?.id ?? submissionGroups[0]?.id ?? "";
   const canReviewInCurrentScope =
@@ -221,7 +220,6 @@ export function MapDashboard({
 
   function applyGroupSelection(nextGroupId: string) {
     setGroupFilter(nextGroupId);
-    setIsGroupSwitcherOpen(nextGroupId === "all");
     syncGroupUrl(nextGroupId);
   }
 
@@ -326,6 +324,7 @@ export function MapDashboard({
         return;
       }
 
+      setIsMobileFiltersOpen(false);
       toast.success(result.message ?? "Endereco localizado no mapa.");
     } finally {
       setIsSearchingAddress(false);
@@ -473,7 +472,7 @@ export function MapDashboard({
   );
   const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visiveis";
   const groupSubheading = currentGroupSummary
-    ? `Grupo ${currentGroupSummary.is_public ? "publico" : "privado"}`
+    ? null
     : `${visibleGroups.length} grupos no filtro atual`;
 
   useEffect(() => {
@@ -508,7 +507,45 @@ export function MapDashboard({
               ) : null}
               <h1>{groupHeading}</h1>
             </div>
-            <p className="subtitle map-context-copy">{groupSubheading}</p>
+            {groupSubheading ? <p className="subtitle map-context-copy">{groupSubheading}</p> : null}
+            {visibleGroups.length > 1 ? (
+              <div className="map-group-switch-row">
+                <button
+                  className="button-ghost compact"
+                  onClick={() => setIsGroupPickerOpen(true)}
+                  type="button"
+                >
+                  <Users aria-hidden="true" size={15} />
+                  <span className="desktop-only">
+                    {groupFilter === "all" ? "Todos os grupos visiveis" : "Trocar grupo"}
+                  </span>
+                  <span className="mobile-only">
+                    {groupFilter === "all" ? "Grupos" : "Trocar grupo"}
+                  </span>
+                </button>
+                <button
+                  className="button-ghost compact map-mobile-tools-toggle"
+                  onClick={() => setIsMobileFiltersOpen(true)}
+                  type="button"
+                >
+                  <Filter aria-hidden="true" size={15} />
+                  <span className="desktop-only">Filtros e busca</span>
+                  <span className="mobile-only">Filtros</span>
+                </button>
+              </div>
+            ) : (
+              <div className="map-group-switch-row">
+                <button
+                  className="button-ghost compact map-mobile-tools-toggle"
+                  onClick={() => setIsMobileFiltersOpen(true)}
+                  type="button"
+                >
+                  <Filter aria-hidden="true" size={15} />
+                  <span className="desktop-only">Filtros e busca</span>
+                  <span className="mobile-only">Filtros</span>
+                </button>
+              </div>
+            )}
           </div>
           <div className="map-header-actions compact">
             {canCreatePoints ? (
@@ -542,44 +579,6 @@ export function MapDashboard({
 
         <div className="map-controls-bar compact">
           <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
-          {showGroupFilterSelect ? (
-            <div className="field toolbar-field">
-              <label className="toolbar-label" htmlFor="group-filter">
-                <Users aria-hidden="true" size={15} />
-                <span>Grupo</span>
-              </label>
-              <select
-                id="group-filter"
-                value={groupFilter}
-                onChange={(event) => applyGroupSelection(event.target.value)}
-              >
-                <option value="all">Todos os grupos visiveis</option>
-                {visibleGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name} ({group.is_public ? "publico" : "privado"})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : currentGroupSummary ? (
-            <div className="surface-subtle toolbar-field">
-              <div className="panel-header">
-                <div className="stack-xs">
-                  <span className="muted">Grupo ativo</span>
-                  <strong>{currentGroupSummary.name}</strong>
-                </div>
-                {visibleGroups.length > 1 ? (
-                  <button
-                    className="button-ghost"
-                    onClick={() => setIsGroupSwitcherOpen(true)}
-                    type="button"
-                  >
-                    Trocar grupo
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
           <form className="map-search-form toolbar-field" onSubmit={handleAddressSearch}>
             <label className="toolbar-label" htmlFor="map-address-search">
               <Search aria-hidden="true" size={15} />
@@ -758,6 +757,118 @@ export function MapDashboard({
         onReject={(point) => handleReviewPoint(point, "reject")}
         point={quickViewPoint}
       />
+
+      {isGroupPickerOpen ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card modal-card-compact stack-md">
+            <div className="modal-header">
+              <div className="modal-header-top">
+                <div className="stack-xs">
+                  <h2 className="section-title">Escolher grupo</h2>
+                  <p className="subtitle">Troque o escopo visivel do mapa.</p>
+                </div>
+                <button
+                  aria-label="Fechar janela"
+                  className="modal-close-button"
+                  onClick={() => setIsGroupPickerOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="list">
+              <button
+                className={`list-row list-row-button${groupFilter === "all" ? " active" : ""}`}
+                onClick={() => {
+                  applyGroupSelection("all");
+                  setIsGroupPickerOpen(false);
+                }}
+                type="button"
+              >
+                <div className="stack-xs">
+                  <strong>Todos os grupos visiveis</strong>
+                  <span className="muted">Exibe os grupos publicos ou acessiveis no seu perfil.</span>
+                </div>
+              </button>
+              {visibleGroups.map((group) => (
+                <button
+                  className={`list-row list-row-button${groupFilter === group.id ? " active" : ""}`}
+                  key={group.id}
+                  onClick={() => {
+                    applyGroupSelection(group.id);
+                    setIsGroupPickerOpen(false);
+                  }}
+                  type="button"
+                >
+                  <div className="stack-xs">
+                    <strong>{group.name}</strong>
+                    <span className="muted">
+                      {group.is_public ? "Grupo publico" : "Grupo privado"}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isMobileFiltersOpen ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card modal-card-compact stack-md">
+            <div className="modal-header">
+              <div className="modal-header-top">
+                <div className="stack-xs">
+                  <h2 className="section-title">Filtros e busca</h2>
+                  <p className="subtitle">Ajuste a classificacao e localize um endereco no mapa.</p>
+                </div>
+                <button
+                  aria-label="Fechar janela"
+                  className="modal-close-button"
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="stack-md">
+              <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
+              <form className="map-search-form" onSubmit={handleAddressSearch}>
+                <label className="toolbar-label" htmlFor="map-address-search-mobile">
+                  <Search aria-hidden="true" size={15} />
+                  <span>Buscar endereco</span>
+                </label>
+                <div className="map-search-row">
+                  <input
+                    id="map-address-search-mobile"
+                    onChange={(event) => setAddressQuery(event.target.value)}
+                    placeholder="Rua, bairro, numero ou referencia"
+                    value={addressQuery}
+                  />
+                  <button className="button-ghost" disabled={isSearchingAddress} type="submit">
+                    <Search aria-hidden="true" size={15} />
+                    {isSearchingAddress ? "Buscando..." : "Localizar"}
+                  </button>
+                </div>
+              </form>
+              {canReviewInCurrentScope ? (
+                <label className="inline-toggle">
+                  <input
+                    checked={pendingOnly}
+                    onChange={(event) => setPendingOnly(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Exibir somente pontos pendentes</span>
+                </label>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

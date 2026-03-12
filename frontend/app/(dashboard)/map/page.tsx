@@ -28,10 +28,14 @@ export default async function MapPage({
   ]);
 
   const visibleGroups = ((((groups ?? []) as GroupRecord[]) ?? [])).map(withGroupLogo);
+  const preferredGroup =
+    visibleGroups.filter((group) => Boolean(group.my_role)).length === 1
+      ? visibleGroups.find((group) => Boolean(group.my_role)) ?? null
+      : null;
   const requestedGroup =
     (requestedGroupCode
       ? visibleGroups.find((group) => group.code === requestedGroupCode)
-      : null) ?? null;
+      : preferredGroup) ?? null;
 
   const { data: points } = await supabase.rpc("list_points", {
     p_point_classification_id: null,

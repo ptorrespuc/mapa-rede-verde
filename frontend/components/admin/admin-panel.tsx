@@ -1223,19 +1223,25 @@ export function AdminPanel({
             {modalMode === "create" ? (
               <>
                 <div className="field">
-                  <label htmlFor="user-group">Grupo inicial</label>
+                  <label htmlFor="user-group">Grupo preferencial</label>
                   <select
                     id="user-group"
                     onChange={(event) => setUserGroupId(event.target.value)}
+                    disabled={editableGroups.length === 1}
                     required
                     value={userGroupId}
                   >
-                    {groups.map((group) => (
+                    {editableGroups.map((group) => (
                       <option key={group.id} value={group.id}>
                         {group.name}
                       </option>
                     ))}
                   </select>
+                  <span className="hint">
+                    {editableGroups.length === 1
+                      ? "Como voce administra apenas um grupo, ele ja foi definido automaticamente."
+                      : "Esse grupo entra como referencia inicial do usuario no sistema."}
+                  </span>
                 </div>
 
                 <div className="field">

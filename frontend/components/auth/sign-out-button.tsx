@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
-export function SignOutButton() {
+interface SignOutButtonProps {
+  className?: string;
+}
+
+export function SignOutButton({ className = "button-ghost" }: SignOutButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -20,7 +24,7 @@ export function SignOutButton() {
   }
 
   return (
-    <button className="button-ghost" onClick={handleSignOut} disabled={isPending} type="button">
+    <button className={className} onClick={handleSignOut} disabled={isPending} type="button">
       {isPending ? "Saindo..." : "Sair"}
     </button>
   );
