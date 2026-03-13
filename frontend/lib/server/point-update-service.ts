@@ -30,6 +30,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { PointDetailRecord, PointPhotoUpdateMode, PointRecord } from "@/types/domain";
 
 export interface ParsedPointPatch {
+  groupId?: string | null;
   classificationId?: string | null;
   title?: string | null;
   description?: string | null;
@@ -70,6 +71,9 @@ export async function updatePointWithPendingMedia(options: {
     parsed.classificationId && parsed.classificationId.trim()
       ? parsed.classificationId
       : existingPoint.classification_id;
+  const requestedGroupId =
+    parsed.groupId && parsed.groupId.trim() ? parsed.groupId : existingPoint.group_id;
+  const isGroupChange = requestedGroupId !== existingPoint.group_id;
   const isReclassificationChange = requestedClassificationId !== existingPoint.classification_id;
   const shouldPreservePreviousState =
     isReclassificationChange && parsed.preservePreviousStateOnReclassification === true;
@@ -92,7 +96,7 @@ export async function updatePointWithPendingMedia(options: {
     );
   }
 
-  const { data, error } = await supabase.rpc("update_point", {
+  const rpcPayload: Record<string, boolean | number | string | null> = {
     p_point_id: pointId,
     p_point_classification_id: parsed.classificationId ?? null,
     p_title: parsed.title ?? null,
@@ -103,9 +107,25 @@ export async function updatePointWithPendingMedia(options: {
     p_is_public: parsed.isPublic ?? null,
     p_species_id: parsed.speciesId ?? null,
     p_species_id_provided: parsed.speciesIdProvided,
-  });
+  };
+
+  if (isGroupChange) {
+    rpcPayload.p_group_id = requestedGroupId;
+  }
+
+  const { data, error } = await supabase.rpc("update_point", rpcPayload);
 
   if (error) {
+    if (isGroupChange && isMissingGroupUpdateSupport(error.message)) {
+      throw new ApiRouteError(
+        "A troca de grupo ainda nao esta habilitada no banco. Aplique a migration 202603130001_point_group_reassignment.sql e tente novamente.",
+        {
+          status: 400,
+          code: "POINT_GROUP_REASSIGNMENT_SCHEMA_OUTDATED",
+        },
+      );
+    }
+
     throw fromPostgrestError(error, {
       message: error.message,
       status: 400,
@@ -291,6 +311,7 @@ async function parseJsonPointPatch(request: Request): Promise<ParsedPointPatch> 
   }
 
   return {
+    groupId: typeof body.groupId === "string" ? body.groupId || null : null,
     classificationId:
       typeof body.classificationId === "string" ? body.classificationId || null : null,
     title: typeof body.title === "string" ? body.title : null,
@@ -319,6 +340,7 @@ async function parseMultipartPointPatch(request: Request): Promise<ParsedPointPa
   validatePointMediaFiles(photos);
 
   return {
+    groupId: normalizeNullableString(formData.get("groupId")),
     classificationId: normalizeNullableString(formData.get("classificationId")),
     title: normalizeNullableString(formData.get("title")),
     description: normalizeNullableString(formData.get("description")),
@@ -370,4 +392,14 @@ function normalizeNullableBoolean(value: FormDataEntryValue | null) {
   }
 
   return null;
+}
+
+function isMissingGroupUpdateSupport(message: string) {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("update_point") &&
+    (normalized.includes("could not find the function") ||
+      normalized.includes("function public.update_point"))
+  );
 }

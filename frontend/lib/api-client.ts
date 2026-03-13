@@ -126,6 +126,10 @@ export const apiClient = {
     if (payload.photos?.length) {
       const formData = new FormData();
 
+      if (payload.groupId) {
+        formData.append("groupId", payload.groupId);
+      }
+
       if (payload.classificationId) {
         formData.append("classificationId", payload.classificationId);
       }

@@ -37,9 +37,17 @@ export default async function EditPointRoute({
   }
 
   const point = withPointGroupLogo(rawPoint);
-
-  const availableGroups = (((groups ?? []) as GroupRecord[]) ?? []).map(withGroupLogo);
-  const editableGroups = availableGroups.filter((group) => group.id === point.group_id);
+  const submissionGroups = context.submission_groups;
+  const currentPointGroup =
+    submissionGroups.find((group) => group.id === point.group_id) ??
+    (((groups ?? []) as GroupRecord[]) ?? [])
+      .map(withGroupLogo)
+      .find((group) => group.id === point.group_id) ??
+    null;
+  const editableGroups =
+    currentPointGroup && !submissionGroups.some((group) => group.id === currentPointGroup.id)
+      ? [currentPointGroup, ...submissionGroups]
+      : submissionGroups;
 
   return (
     <EditPointPage

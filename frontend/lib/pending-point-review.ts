@@ -91,6 +91,7 @@ function resolvePendingMediaMode(point: PointDetailRecord, hasPendingMedia: bool
 
 function buildCurrentSnapshot(point: PointDetailRecord): PendingPointReviewSnapshot {
   return {
+    groupName: point.group_name,
     classificationName: point.classification_name,
     title: point.title,
     speciesName: point.species_name,
@@ -108,6 +109,7 @@ function buildProposedSnapshot(
 ): PendingPointReviewSnapshot {
   const pendingData = point.pending_update_data ?? {};
   const hasDescription = Object.prototype.hasOwnProperty.call(pendingData, "description");
+  const hasGroup = Object.prototype.hasOwnProperty.call(pendingData, "group_id");
   const hasIsPublic = Object.prototype.hasOwnProperty.call(pendingData, "is_public");
   const hasSpecies = Object.prototype.hasOwnProperty.call(pendingData, "species_id");
 
@@ -125,6 +127,10 @@ function buildProposedSnapshot(
     typeof pendingData.longitude === "number" ? pendingData.longitude : point.longitude;
 
   return {
+    groupName:
+      hasGroup && typeof pendingData.group_name === "string" && pendingData.group_name.trim()
+        ? pendingData.group_name.trim()
+        : point.group_name,
     classificationName:
       (nextClassificationId ? classificationMap.get(nextClassificationId) : null) ??
       point.classification_name,
@@ -149,6 +155,7 @@ function buildChanges(
 ): PendingPointReviewChange[] {
   const changes: PendingPointReviewChange[] = [];
 
+  maybePushChange(changes, "group", "Grupo", current.groupName, proposed.groupName);
   maybePushChange(changes, "classification", "Classificacao", current.classificationName, proposed.classificationName);
   maybePushChange(changes, "title", "Titulo", current.title, proposed.title);
   maybePushChange(

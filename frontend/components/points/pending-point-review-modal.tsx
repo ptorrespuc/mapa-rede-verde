@@ -173,6 +173,7 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
   return (
     <div className="stack-md">
       <div className="pending-preview-grid">
+        <InfoCard label="Grupo" value={summary.proposed.groupName} />
         <InfoCard label="Classificacao" value={summary.proposed.classificationName} />
         <InfoCard label="Titulo" value={summary.proposed.title} />
         <InfoCard label="Especie" value={summary.proposed.speciesName ?? "Sem especie"} />

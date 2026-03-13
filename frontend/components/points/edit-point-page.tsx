@@ -41,6 +41,7 @@ export function EditPointPage({
 
     try {
       const updatedPoint = await apiClient.updatePoint(point.id, {
+        groupId: payload.groupId,
         classificationId: payload.classificationId,
         title: payload.title,
         speciesId: payload.speciesId?.trim() ? payload.speciesId : null,

@@ -99,6 +99,7 @@ export interface PointMediaRecord {
 export type PendingReviewMediaMode = "append" | "replace" | "unspecified" | null;
 
 export interface PendingPointReviewSnapshot {
+  groupName: string;
   classificationName: string;
   title: string;
   speciesName: string | null;
@@ -222,6 +223,7 @@ export interface CreatePointPayload {
 }
 
 export interface UpdatePointPayload {
+  groupId?: string;
   classificationId?: string;
   title?: string;
   speciesId?: string | null;

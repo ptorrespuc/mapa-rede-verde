@@ -136,6 +136,19 @@ function buildPendingChangeItems(
 
   const pendingClassificationId =
     typeof pendingData.classification_id === "string" ? pendingData.classification_id : null;
+  const pendingGroupId =
+    typeof pendingData.group_id === "string" ? pendingData.group_id : null;
+  const pendingGroupName =
+    typeof pendingData.group_name === "string" ? pendingData.group_name.trim() : null;
+
+  if (pendingGroupId && pendingGroupId !== point.group_id) {
+    changes.push({
+      label: "Grupo",
+      currentValue: point.group_name,
+      nextValue: pendingGroupName || "Grupo selecionado",
+    });
+  }
+
   if (pendingClassificationId && pendingClassificationId !== point.classification_id) {
     changes.push({
       label: "Classificacao",
