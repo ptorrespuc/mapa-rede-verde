@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Camera } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -58,6 +59,8 @@ export function PointTimeline({
   const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
   const [isDeletingEventId, setIsDeletingEventId] = useState<string | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const photosRef = useRef<TimelinePhotoDraft[]>([]);
   const hasConfiguredEventTypes = eventTypeOptions.length > 0;
 
@@ -205,6 +208,17 @@ export function PointTimeline({
       });
       return [];
     });
+    resetPhotoInputs();
+  }
+
+  function resetPhotoInputs() {
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = "";
+    }
+
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+    }
   }
 
   function resetComposer() {
@@ -315,18 +329,49 @@ export function PointTimeline({
               </div>
 
               <div className="field">
-                <label htmlFor="event-photos">Fotos da informacao</label>
+                <label htmlFor="event-photos-gallery">Fotos da informacao</label>
                 <input
-                  id="event-photos"
-                  className="file-input"
-                  type="file"
+                  id="event-photos-gallery"
+                  ref={galleryInputRef}
                   accept="image/*"
+                  className="file-input"
+                  hidden
                   multiple
                   onChange={(event) => void handlePhotosSelected(event)}
+                  type="file"
                 />
+                <input
+                  id="event-photos-camera"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="environment"
+                  className="file-input"
+                  hidden
+                  onChange={(event) => void handlePhotosSelected(event)}
+                  type="file"
+                />
+                <div className="form-actions">
+                  <button
+                    className="button-ghost button-inline-ghost"
+                    onClick={() => cameraInputRef.current?.click()}
+                    type="button"
+                  >
+                    <Camera aria-hidden="true" size={15} />
+                    Tirar foto
+                  </button>
+                  <button
+                    className="button-ghost button-inline-ghost"
+                    onClick={() => galleryInputRef.current?.click()}
+                    type="button"
+                  >
+                    <Camera aria-hidden="true" size={15} />
+                    Escolher imagens
+                  </button>
+                </div>
                 <span className="hint">
                   Ate {MAX_TIMELINE_FILES} fotos por evento, com limite de 10 MB por imagem. Cada
-                  arquivo e salvo com ate 2 MP.
+                  arquivo e salvo com ate 2 MP. No celular, use &quot;Tirar foto&quot; para
+                  abrir a camera.
                 </span>
               </div>
 

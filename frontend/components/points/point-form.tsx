@@ -120,7 +120,8 @@ export function PointForm({
   const [photoUpdateMode, setPhotoUpdateMode] = useState<PointPhotoUpdateMode>(() =>
     getDefaultPointPhotoUpdateMode(existingPointPhotos),
   );
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const pointGalleryInputRef = useRef<HTMLInputElement | null>(null);
+  const pointCameraInputRef = useRef<HTMLInputElement | null>(null);
   const pointPhotoDraftsRef = useRef<PointPhotoDraft[]>([]);
 
   useEffect(() => {
@@ -143,9 +144,7 @@ export function PointForm({
     setShowPhotoUploader(false);
     setPreservePreviousStateOnReclassification(true);
     setPhotoUpdateMode(getDefaultPointPhotoUpdateMode(existingPointPhotos));
-    if (photoInputRef.current) {
-      photoInputRef.current.value = "";
-    }
+    resetPointPhotoInputs();
   }, [defaults, existingPointPhotos]);
 
   useEffect(() => {
@@ -385,6 +384,16 @@ export function PointForm({
       });
       return [];
     });
+  }
+
+  function resetPointPhotoInputs() {
+    if (pointGalleryInputRef.current) {
+      pointGalleryInputRef.current.value = "";
+    }
+
+    if (pointCameraInputRef.current) {
+      pointCameraInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -777,9 +786,7 @@ export function PointForm({
                     clearDraftPointPhotos();
                     setShowPhotoUploader(false);
                     setPhotoUpdateMode("append");
-                    if (photoInputRef.current) {
-                      photoInputRef.current.value = "";
-                    }
+                    resetPointPhotoInputs();
                   }}
                   type="radio"
                 />
@@ -801,9 +808,7 @@ export function PointForm({
                     clearDraftPointPhotos();
                     setShowPhotoUploader(false);
                     setPhotoUpdateMode("replace");
-                    if (photoInputRef.current) {
-                      photoInputRef.current.value = "";
-                    }
+                    resetPointPhotoInputs();
                   }}
                   type="radio"
                 />
@@ -846,21 +851,52 @@ export function PointForm({
           ) : (
             <>
               <div className="field">
-                <label htmlFor="point-photo">Selecionar imagens</label>
+                <label htmlFor="point-photo-gallery">Selecionar imagens</label>
                 <input
-                  id="point-photo"
-                  ref={photoInputRef}
+                  id="point-photo-gallery"
+                  ref={pointGalleryInputRef}
                   accept="image/*"
                   className="file-input"
+                  hidden
                   multiple
                   onChange={(event) => void handlePointPhotosSelected(event)}
                   type="file"
                 />
+                <input
+                  id="point-photo-camera"
+                  ref={pointCameraInputRef}
+                  accept="image/*"
+                  capture="environment"
+                  className="file-input"
+                  hidden
+                  onChange={(event) => void handlePointPhotosSelected(event)}
+                  type="file"
+                />
+                <div className="form-actions">
+                  <button
+                    className="button-ghost button-inline-ghost"
+                    onClick={() => pointCameraInputRef.current?.click()}
+                    type="button"
+                  >
+                    <Camera aria-hidden="true" size={15} />
+                    Tirar foto
+                  </button>
+                  <button
+                    className="button-ghost button-inline-ghost"
+                    onClick={() => pointGalleryInputRef.current?.click()}
+                    type="button"
+                  >
+                    <Camera aria-hidden="true" size={15} />
+                    Escolher imagens
+                  </button>
+                </div>
                 <span className="hint">
                   {isEditingExistingPoint && photoUpdateMode === "append"
                     ? `Voce pode adicionar ate ${maxDraftPointPhotos} foto(s) nova(s) mantendo o limite total de ${MAX_POINT_PHOTOS}.`
                     : `Ate ${MAX_POINT_PHOTOS} fotos por ponto.`}{" "}
-                  Cada imagem e tratada para no maximo 2 MP.
+                  Cada imagem e tratada para no maximo 2 MP. No celular, use &quot;Tirar
+                  foto&quot; para
+                  abrir a camera.
                 </span>
               </div>
 
