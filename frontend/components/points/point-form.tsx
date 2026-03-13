@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, Crosshair, PencilLine } from "lucide-react";
+import { Camera, Crosshair, MapPinned, PencilLine } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { PointCoordinatePickerModal } from "@/components/points/point-coordinate-picker-modal";
 import {
   formatProcessedImageLabel,
   processImageForUpload,
@@ -112,6 +113,7 @@ export function PointForm({
   const [showCoordinateEditor, setShowCoordinateEditor] = useState(
     !Boolean(defaults.longitude && defaults.latitude),
   );
+  const [showCoordinatePickerModal, setShowCoordinatePickerModal] = useState(false);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [preservePreviousStateOnReclassification, setPreservePreviousStateOnReclassification] =
     useState(true);
@@ -137,6 +139,7 @@ export function PointForm({
     setFormState(defaults);
     clearDraftPointPhotos();
     setShowCoordinateEditor(!(defaults.longitude && defaults.latitude));
+    setShowCoordinatePickerModal(false);
     setShowPhotoUploader(false);
     setPreservePreviousStateOnReclassification(true);
     setPhotoUpdateMode(getDefaultPointPhotoUpdateMode(existingPointPhotos));
@@ -201,6 +204,16 @@ export function PointForm({
     const separator = speciesAdminHref.includes("?") ? "&" : "?";
     return `${speciesAdminHref}${separator}commonName=${encodeURIComponent(speciesSearch.trim())}`;
   }, [speciesAdminHref, speciesSearch]);
+  const coordinatePickerInitialCoordinates = useMemo(() => {
+    const latitude = Number(formState.latitude);
+    const longitude = Number(formState.longitude);
+
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  }, [formState.latitude, formState.longitude]);
 
   useEffect(() => {
     if (!pointCanBePublic && formState.isPublic) {
@@ -269,6 +282,16 @@ export function PointForm({
 
   function setField<Key extends keyof PointFormState>(key: Key, value: PointFormState[Key]) {
     setFormState((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyCoordinatesFromMap(coordinates: { latitude: number; longitude: number }) {
+    setFormState((current) => ({
+      ...current,
+      latitude: coordinates.latitude.toString(),
+      longitude: coordinates.longitude.toString(),
+    }));
+    setShowCoordinatePickerModal(false);
+    setShowCoordinateEditor(false);
   }
 
   async function handlePointPhotosSelected(event: React.ChangeEvent<HTMLInputElement>) {
@@ -607,14 +630,26 @@ export function PointForm({
                 {Number(formState.longitude).toFixed(6)}
               </span>
             </div>
-            <button
-              className="button-ghost button-inline-ghost"
-              onClick={() => setShowCoordinateEditor(true)}
-              type="button"
-            >
-              <PencilLine aria-hidden="true" size={15} />
-              Ajustar coordenadas
-            </button>
+            <div className="button-row">
+              {isEditingExistingPoint ? (
+                <button
+                  className="button-ghost button-inline-ghost"
+                  onClick={() => setShowCoordinatePickerModal(true)}
+                  type="button"
+                >
+                  <MapPinned aria-hidden="true" size={15} />
+                  Buscar no mapa
+                </button>
+              ) : null}
+              <button
+                className="button-ghost button-inline-ghost"
+                onClick={() => setShowCoordinateEditor(true)}
+                type="button"
+              >
+                <PencilLine aria-hidden="true" size={15} />
+                Ajustar coordenadas
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -646,12 +681,23 @@ export function PointForm({
               </div>
             </div>
 
-            {hasCoordinates ? (
+            {hasCoordinates || isEditingExistingPoint ? (
               <div className="form-actions">
+                {isEditingExistingPoint ? (
+                  <button
+                    className="button-ghost button-inline-ghost"
+                    onClick={() => setShowCoordinatePickerModal(true)}
+                    type="button"
+                  >
+                    <MapPinned aria-hidden="true" size={15} />
+                    Buscar no mapa
+                  </button>
+                ) : null}
                 <button
                   className="button-ghost button-inline-ghost"
                   onClick={() => setShowCoordinateEditor(false)}
                   type="button"
+                  disabled={!hasCoordinates}
                 >
                   <Crosshair aria-hidden="true" size={15} />
                   Manter so a posicao do mapa
@@ -945,6 +991,15 @@ export function PointForm({
           </button>
         ) : null}
       </div>
+
+      {isEditingExistingPoint ? (
+        <PointCoordinatePickerModal
+          initialCoordinates={coordinatePickerInitialCoordinates}
+          isOpen={showCoordinatePickerModal}
+          onClose={() => setShowCoordinatePickerModal(false)}
+          onConfirm={applyCoordinatesFromMap}
+        />
+      ) : null}
     </form>
   );
 }

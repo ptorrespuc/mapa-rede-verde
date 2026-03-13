@@ -20,6 +20,9 @@ interface MapCanvasProps {
   onSelectPoint?: (point: PointRecord) => void;
   onOpenPointSummary?: (point: PointRecord) => void;
   onCenterChange?: (center: { latitude: number; longitude: number }) => void;
+  initialCenter?: { latitude: number; longitude: number } | null;
+  initialZoom?: number;
+  autoCenterOnCurrentLocation?: boolean;
 }
 
 export interface MapCanvasHandle {
@@ -125,6 +128,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     onSelectPoint,
     onOpenPointSummary,
     onCenterChange,
+    initialCenter,
+    initialZoom = 18,
+    autoCenterOnCurrentLocation = true,
   },
   ref,
 ) {
@@ -146,6 +152,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const boundsListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const idleListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const skipNextBoundsFitRef = useRef(false);
+  const initialCenterRef = useRef(initialCenter);
+  const initialZoomRef = useRef(initialZoom);
+  const autoCenterOnCurrentLocationRef = useRef(autoCenterOnCurrentLocation);
   const [isReady, setIsReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -273,7 +282,18 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID?.trim() || undefined,
         });
         infoWindowRef.current = new InfoWindow();
-        await centerMapOnCurrentLocation(mapRef.current);
+
+        if (initialCenterRef.current) {
+          skipNextBoundsFitRef.current = true;
+          mapRef.current.setCenter({
+            lat: initialCenterRef.current.latitude,
+            lng: initialCenterRef.current.longitude,
+          });
+          mapRef.current.setZoom(initialZoomRef.current);
+        } else if (autoCenterOnCurrentLocationRef.current) {
+          await centerMapOnCurrentLocation(mapRef.current);
+        }
+
         setIsReady(true);
       } catch (error) {
         if (!ignore) {
@@ -454,8 +474,17 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     boundsListenerRef.current = null;
 
     if (!points.length) {
-      map.setCenter(defaultCenter);
-      map.setZoom(12);
+      if (initialCenter) {
+        skipNextBoundsFitRef.current = true;
+        map.setCenter({
+          lat: initialCenter.latitude,
+          lng: initialCenter.longitude,
+        });
+        map.setZoom(initialZoom);
+      } else {
+        map.setCenter(defaultCenter);
+        map.setZoom(12);
+      }
       return;
     }
 
@@ -484,7 +513,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       boundsListenerRef.current?.remove();
       boundsListenerRef.current = null;
     };
-  }, [isReady, points]);
+  }, [initialCenter, initialZoom, isReady, points]);
 
   return (
     <div className="map-stage">

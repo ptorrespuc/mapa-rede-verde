@@ -91,6 +91,7 @@ export function PointEditFormHarness() {
           enableInitialPhotoUpload
           existingPointPhotos={CURRENT_POINT_PHOTOS}
           groups={GROUPS}
+          isEditing
           initialValues={{
             groupId: "group-1",
             classificationId: "classification-1",
