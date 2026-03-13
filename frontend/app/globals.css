@@ -52,6 +52,23 @@ textarea {
   padding: 2rem;
 }
 
+.maintenance-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+}
+
+.maintenance-card {
+  width: min(100%, 560px);
+  padding: 2.4rem;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
 .auth-card {
   width: min(100%, 430px);
   padding: 2rem;
