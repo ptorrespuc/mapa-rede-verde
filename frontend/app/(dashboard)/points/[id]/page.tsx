@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { DeletePointButton } from "@/components/points/delete-point-button";
 import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
 import { PointReviewActions } from "@/components/points/point-review-actions";
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { PointTimeline } from "@/components/points/point-timeline";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getPointDisplayStatusLabel, isPointPendingForReview } from "@/lib/point-display";
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { attachPointTagsToPoint } from "@/lib/point-tags";
 import { canViewerSeePoint } from "@/lib/point-visibility";
 import { getPointMedia, getPointTimeline } from "@/lib/point-timeline";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -39,7 +41,7 @@ export default async function PointDetailPage({
     notFound();
   }
 
-  const point = withPointGroupLogo(rawPoint);
+  const point = withPointGroupLogo(await attachPointTagsToPoint(supabase, rawPoint));
   const [timeline, pointMedia, { data: eventTypeData }] = await Promise.all([
     getPointTimeline(supabase, id),
     getPointMedia(supabase, id),
@@ -175,6 +177,12 @@ export default async function PointDetailPage({
           {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
           <span className="muted">Criado em {new Date(point.created_at).toLocaleString("pt-BR")}</span>
         </div>
+        {point.tags?.length ? (
+          <div className="stack-xs">
+            <span className="muted">Tags do ponto</span>
+            <PointTagBadges tags={point.tags} />
+          </div>
+        ) : null}
         {point.viewer_can_manage || point.viewer_can_request_update ? (
           <div className="surface-subtle stack-xs">
             <strong>Alterar classificacao</strong>

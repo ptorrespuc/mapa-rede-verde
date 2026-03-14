@@ -46,7 +46,7 @@ export async function PATCH(
     await Promise.all([
       admin
         .from("users")
-        .select("id, auth_user_id, name, email, created_at")
+        .select("id, auth_user_id, name, email, preferred_group_id, created_at")
         .eq("id", id)
         .maybeSingle(),
       admin
@@ -101,10 +101,12 @@ export async function PATCH(
     body.email.trim()
       ? body.email.trim().toLowerCase()
       : existingUser.email;
+  let preferredGroupId: string | null | undefined;
 
   let memberships;
 
   try {
+    preferredGroupId = parsePreferredGroupId(body.preferredGroupId);
     memberships = parseMemberships(
       body.memberships,
       currentUser.is_super_admin ? validRoles : manageableRoles,
@@ -157,6 +159,38 @@ export async function PATCH(
     }
   }
 
+  const resultingMemberships = memberships
+    ? mergeMemberships(existingMemberships, memberships, manageableGroupIds, currentUser.is_super_admin)
+    : existingMemberships;
+  const resultingMembershipGroupIds = new Set(
+    resultingMemberships.map((membership) => membership.group_id),
+  );
+
+  if (
+    preferredGroupId &&
+    !currentUser.is_super_admin &&
+    !manageableGroupIds.has(preferredGroupId)
+  ) {
+    return NextResponse.json(
+      { error: "Voce so pode definir como preferencial um grupo que administra." },
+      { status: 403 },
+    );
+  }
+
+  if (preferredGroupId && !resultingMembershipGroupIds.has(preferredGroupId)) {
+    return NextResponse.json(
+      { error: "O grupo preferencial precisa estar entre os grupos vinculados ao usuario." },
+      { status: 400 },
+    );
+  }
+
+  const nextPreferredGroupId = resolveNextPreferredGroupId(
+    preferredGroupId,
+    existingUser.preferred_group_id,
+    resultingMemberships,
+    Boolean(memberships),
+  );
+
   if (currentUser.is_super_admin) {
     const { error: authError } = await admin.auth.admin.updateUserById(existingUser.auth_user_id, {
       email: nextEmail,
@@ -170,18 +204,6 @@ export async function PATCH(
         { error: authError.message ?? "Nao foi possivel atualizar o usuario no Auth." },
         { status: 400 },
       );
-    }
-
-    const { error: publicUserError } = await admin
-      .from("users")
-      .update({
-        name: nextName,
-        email: nextEmail,
-      })
-      .eq("id", id);
-
-    if (publicUserError) {
-      return NextResponse.json({ error: publicUserError.message }, { status: 400 });
     }
   }
 
@@ -213,6 +235,36 @@ export async function PATCH(
       if (insertMembershipsError) {
         return NextResponse.json({ error: insertMembershipsError.message }, { status: 400 });
       }
+    }
+  }
+
+  const publicUserUpdatePayload: {
+    name?: string;
+    email?: string;
+    preferred_group_id?: string | null;
+  } = {};
+
+  if (currentUser.is_super_admin) {
+    publicUserUpdatePayload.name = nextName;
+    publicUserUpdatePayload.email = nextEmail;
+  }
+
+  if (
+    nextPreferredGroupId !== existingUser.preferred_group_id ||
+    Boolean(memberships) ||
+    currentUser.is_super_admin
+  ) {
+    publicUserUpdatePayload.preferred_group_id = nextPreferredGroupId;
+  }
+
+  if (Object.keys(publicUserUpdatePayload).length) {
+    const { error: publicUserError } = await admin
+      .from("users")
+      .update(publicUserUpdatePayload)
+      .eq("id", id);
+
+    if (publicUserError) {
+      return NextResponse.json({ error: publicUserError.message }, { status: 400 });
     }
   }
 
@@ -252,7 +304,7 @@ async function loadAdminUser(
     await Promise.all([
       admin
         .from("users")
-        .select("id, auth_user_id, name, email, created_at")
+        .select("id, auth_user_id, name, email, preferred_group_id, created_at")
         .eq("id", userId)
         .maybeSingle(),
       admin
@@ -281,11 +333,26 @@ async function loadAdminUser(
 
   return {
     ...user,
+    ...resolvePreferredGroup(visibleMemberships, user.preferred_group_id),
     memberships: visibleMemberships,
     hidden_membership_count: Math.max(
       normalizedMemberships.length - visibleMemberships.length,
       0,
     ),
+  };
+}
+
+function resolvePreferredGroup(
+  memberships: AdminUserGroupMembership[],
+  preferredGroupId: string | null,
+) {
+  const preferredMembership = memberships.find((membership) => membership.group_id === preferredGroupId);
+
+  return {
+    preferred_group_id: preferredGroupId,
+    preferred_group_name: preferredMembership?.group_name ?? null,
+    preferred_group_code: preferredMembership?.group_code ?? null,
+    preferred_group_hidden: Boolean(preferredGroupId) && !preferredMembership,
   };
 }
 
@@ -343,6 +410,74 @@ function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) 
     groupId,
     role,
   }));
+}
+
+function parsePreferredGroupId(rawPreferredGroupId: unknown) {
+  if (rawPreferredGroupId === undefined) {
+    return undefined;
+  }
+
+  if (rawPreferredGroupId === null) {
+    return null;
+  }
+
+  if (typeof rawPreferredGroupId !== "string") {
+    throw new Error("O grupo preferencial informado e invalido.");
+  }
+
+  const normalized = rawPreferredGroupId.trim();
+  return normalized || null;
+}
+
+function mergeMemberships(
+  existingMemberships: AdminUserGroupMembership[],
+  incomingMemberships: Array<{ groupId: string; role: UserRole }>,
+  manageableGroupIds: Set<string>,
+  isSuperAdmin: boolean,
+) {
+  if (isSuperAdmin) {
+    return incomingMemberships.map((membership) => ({
+      group_id: membership.groupId,
+      group_name: existingMemberships.find((item) => item.group_id === membership.groupId)?.group_name ?? "",
+      group_code: existingMemberships.find((item) => item.group_id === membership.groupId)?.group_code ?? "",
+      role: membership.role,
+    }));
+  }
+
+  const preservedMemberships = existingMemberships.filter(
+    (membership) => !manageableGroupIds.has(membership.group_id),
+  );
+  const editableMemberships = incomingMemberships.map((membership) => ({
+    group_id: membership.groupId,
+    group_name: existingMemberships.find((item) => item.group_id === membership.groupId)?.group_name ?? "",
+    group_code: existingMemberships.find((item) => item.group_id === membership.groupId)?.group_code ?? "",
+    role: membership.role,
+  }));
+
+  return [...preservedMemberships, ...editableMemberships];
+}
+
+function resolveNextPreferredGroupId(
+  requestedPreferredGroupId: string | null | undefined,
+  existingPreferredGroupId: string | null,
+  resultingMemberships: AdminUserGroupMembership[],
+  membershipsWereUpdated: boolean,
+) {
+  const resultingGroupIds = new Set(resultingMemberships.map((membership) => membership.group_id));
+
+  if (requestedPreferredGroupId !== undefined) {
+    return requestedPreferredGroupId;
+  }
+
+  if (existingPreferredGroupId && resultingGroupIds.has(existingPreferredGroupId)) {
+    return existingPreferredGroupId;
+  }
+
+  if (membershipsWereUpdated) {
+    return resultingMemberships[0]?.group_id ?? null;
+  }
+
+  return existingPreferredGroupId;
 }
 
 type MembershipRow = {

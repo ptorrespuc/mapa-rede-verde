@@ -39,6 +39,18 @@ export interface SpeciesRecord {
   updated_at: string;
 }
 
+export interface PointTagRecord {
+  id: string;
+  point_classification_id: string;
+  point_classification_name?: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PointRecord {
   id: string;
   group_id: string;
@@ -59,6 +71,7 @@ export interface PointRecord {
   species_common_name?: string | null;
   species_scientific_name?: string | null;
   species_origin?: "native" | "exotic" | null;
+  tags?: PointTagRecord[];
   description: string | null;
   status: string;
   is_public: boolean;
@@ -103,6 +116,7 @@ export interface PendingPointReviewSnapshot {
   classificationName: string;
   title: string;
   speciesName: string | null;
+  tagNames: string[];
   description: string | null;
   latitude: number;
   longitude: number;
@@ -182,6 +196,7 @@ export interface UserProfile {
   auth_user_id: string;
   name: string;
   email: string;
+  preferred_group_id: string | null;
   created_at: string;
 }
 
@@ -195,6 +210,9 @@ export interface AdminUserGroupMembership {
 export interface AdminUserRecord extends UserProfile {
   memberships: AdminUserGroupMembership[];
   hidden_membership_count: number;
+  preferred_group_name: string | null;
+  preferred_group_code: string | null;
+  preferred_group_hidden: boolean;
 }
 
 export interface UserContext {
@@ -203,6 +221,7 @@ export interface UserContext {
   manageable_groups: GroupRecord[];
   submission_groups: GroupRecord[];
   approvable_groups: GroupRecord[];
+  preferred_group: GroupRecord | null;
   is_super_admin: boolean;
   has_group_admin: boolean;
   has_point_workspace: boolean;
@@ -211,6 +230,7 @@ export interface UserContext {
 export interface CreatePointPayload {
   groupId: string;
   classificationId: string;
+  tagIds?: string[];
   title: string;
   speciesId?: string;
   description?: string;
@@ -225,6 +245,7 @@ export interface CreatePointPayload {
 export interface UpdatePointPayload {
   groupId?: string;
   classificationId?: string;
+  tagIds?: string[];
   title?: string;
   speciesId?: string | null;
   description?: string;
@@ -272,6 +293,7 @@ export interface CreateAdminUserPayload {
   name: string;
   email: string;
   groupId: string;
+  preferredGroupId?: string;
   role: UserRole;
 }
 
@@ -283,6 +305,7 @@ export interface UpdateAdminUserMembershipPayload {
 export interface UpdateAdminUserPayload {
   name?: string;
   email?: string;
+  preferredGroupId?: string | null;
   memberships?: UpdateAdminUserMembershipPayload[];
 }
 
@@ -325,6 +348,22 @@ export interface UpdatePointEventTypePayload {
   pointClassificationId?: string;
   name?: string;
   slug?: string;
+}
+
+export interface CreatePointTagPayload {
+  pointClassificationId: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdatePointTagPayload {
+  pointClassificationId?: string;
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  isActive?: boolean;
 }
 
 export const STATUS_OPTIONS = [

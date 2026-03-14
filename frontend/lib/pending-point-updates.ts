@@ -8,6 +8,7 @@ export type PendingPointMediaMode = "append" | "replace";
 const PRESERVE_PREVIOUS_STATE_KEY = "preserve_previous_state";
 const PENDING_POINT_MEDIA_KEY = "pending_point_media";
 const PENDING_POINT_MEDIA_MODE_KEY = "pending_point_media_mode";
+const PENDING_TAG_IDS_KEY = "pending_tag_ids";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -43,12 +44,38 @@ export function getPendingPointMediaMode(
   return pendingUpdateData?.[PENDING_POINT_MEDIA_MODE_KEY] === "append" ? "append" : "replace";
 }
 
+export function getPendingTagIds(
+  pendingUpdateData: Record<string, unknown> | null | undefined,
+) {
+  const rawValue = pendingUpdateData?.[PENDING_TAG_IDS_KEY];
+
+  if (!Array.isArray(rawValue)) {
+    return [] as string[];
+  }
+
+  return Array.from(
+    new Set(
+      rawValue
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+export function hasPendingTagIds(
+  pendingUpdateData: Record<string, unknown> | null | undefined,
+) {
+  return isRecord(pendingUpdateData) && Object.prototype.hasOwnProperty.call(pendingUpdateData, PENDING_TAG_IDS_KEY);
+}
+
 export function mergePendingUpdateMetadata(
   pendingUpdateData: Record<string, unknown> | null | undefined,
   options: {
     preservePreviousState?: boolean;
     pendingPointMedia?: PendingPointMediaDescriptor[];
     pendingPointMediaMode?: PendingPointMediaMode;
+    pendingTagIds?: string[];
   },
 ) {
   const nextData = isRecord(pendingUpdateData) ? { ...pendingUpdateData } : {};
@@ -68,6 +95,16 @@ export function mergePendingUpdateMetadata(
     } else {
       delete nextData[PENDING_POINT_MEDIA_KEY];
       delete nextData[PENDING_POINT_MEDIA_MODE_KEY];
+    }
+  }
+
+  if (options.pendingTagIds) {
+    if (options.pendingTagIds.length) {
+      nextData[PENDING_TAG_IDS_KEY] = Array.from(
+        new Set(options.pendingTagIds.map((tagId) => tagId.trim()).filter(Boolean)),
+      );
+    } else {
+      nextData[PENDING_TAG_IDS_KEY] = [];
     }
   }
 

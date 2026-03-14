@@ -43,6 +43,7 @@ export function EditPointPage({
       const updatedPoint = await apiClient.updatePoint(point.id, {
         groupId: payload.groupId,
         classificationId: payload.classificationId,
+        tagIds: payload.tagIds ?? [],
         title: payload.title,
         speciesId: payload.speciesId?.trim() ? payload.speciesId : null,
         description: payload.description,
@@ -93,6 +94,7 @@ export function EditPointPage({
           initialValues={{
             groupId: point.group_id,
             classificationId: point.classification_id,
+            tagIds: (point.tags ?? []).map((tag) => tag.id),
             title: point.title,
             speciesId: point.species_id ?? undefined,
             description: point.description ?? undefined,

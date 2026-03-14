@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { loadPendingPointReviewSummary } from "@/lib/pending-point-review";
+import { attachPointTagsToPoint } from "@/lib/point-tags";
 import { canViewerSeePoint } from "@/lib/point-visibility";
 import { loadViewerProfileId } from "@/lib/server/point-service-shared";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -24,25 +25,26 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const point = (data as PointDetailRecord[] | null)?.[0];
+  const rawPoint = (data as PointDetailRecord[] | null)?.[0];
 
-  if (!point) {
+  if (!rawPoint) {
     return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
   }
 
   const viewerProfileId = await loadViewerProfileId(supabase, user?.id ?? null);
 
-  if (!canViewerSeePoint(point, viewerProfileId)) {
+  if (!canViewerSeePoint(rawPoint, viewerProfileId)) {
     return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
   }
 
-  if (!point.has_pending_update) {
+  if (!rawPoint.has_pending_update) {
     return NextResponse.json(
       { error: "Este ponto nao possui alteracao pendente para revisao." },
       { status: 400 },
     );
   }
 
+  const point = await attachPointTagsToPoint(supabase, rawPoint);
   const summary = await loadPendingPointReviewSummary(supabase, point);
 
   if (!summary) {

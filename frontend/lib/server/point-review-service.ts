@@ -9,6 +9,8 @@ import {
   replaceCurrentPointMedia,
 } from "@/lib/point-media";
 import {
+  hasPendingTagIds,
+  getPendingTagIds,
   getPendingPointMediaDescriptors,
   getPendingPointMediaMode,
   shouldPreservePreviousState,
@@ -28,6 +30,7 @@ import {
   loadPointDetailOrThrow,
   type ServerSupabaseClient,
 } from "@/lib/server/point-service-shared";
+import { replacePointTagAssignments } from "@/lib/server/point-tag-service";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { PointRecord } from "@/types/domain";
 
@@ -58,6 +61,8 @@ export async function reviewPointChange(options: {
   const existingPoint = await loadPointDetailOrThrow(supabase, pointId);
   const pendingPointMedia = getPendingPointMediaDescriptors(existingPoint.pending_update_data);
   const pendingPointMediaMode = getPendingPointMediaMode(existingPoint.pending_update_data);
+  const pendingTagIds = getPendingTagIds(existingPoint.pending_update_data);
+  const hasPendingTagSelection = hasPendingTagIds(existingPoint.pending_update_data);
   const preservePreviousState = shouldPreservePreviousState(existingPoint.pending_update_data);
   const pendingClassificationId =
     typeof existingPoint.pending_update_data?.classification_id === "string"
@@ -117,6 +122,17 @@ export async function reviewPointChange(options: {
         }
       }
 
+      if (existingPoint.has_pending_update && hasPendingTagSelection) {
+        const adminSupabase = createAdminSupabaseClient();
+        const actorProfileId = await loadActorProfileIdOrThrow(adminSupabase, actorAuthUserId);
+        await replacePointTagAssignments({
+          adminSupabase,
+          pointId,
+          tagIds: pendingTagIds,
+          createdBy: actorProfileId,
+        });
+      }
+
       await recordApprovalTimelineEvent({
         actorAuthUserId,
         existingPoint,
@@ -137,7 +153,7 @@ export async function reviewPointChange(options: {
     );
   }
 
-  return point;
+  return loadPointDetailOrThrow(supabase, pointId);
 }
 
 async function recordApprovalTimelineEvent(options: {

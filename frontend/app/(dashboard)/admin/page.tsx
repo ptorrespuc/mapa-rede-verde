@@ -2,6 +2,7 @@ import { AdminPanel } from "@/components/admin/admin-panel";
 import { requireUserContext } from "@/lib/auth";
 import { withGroupLogo } from "@/lib/group-logos";
 import { loadPointClassifications } from "@/lib/point-classifications";
+import { loadPointTags } from "@/lib/point-tags";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
@@ -10,6 +11,7 @@ import type {
   GroupRecord,
   PointClassificationRecord,
   PointEventTypeRecord,
+  PointTagRecord,
   SpeciesRecord,
   UserRole,
 } from "@/types/domain";
@@ -45,7 +47,14 @@ export default async function AdminPage({
   const visibleGroupIds = context.groups.map((group) => group.id);
   const canManageGlobalCatalogs = context.is_super_admin;
 
-  const [groupRows, classificationsResponse, eventTypesResponse, speciesCatalogResponse, initialUsers] =
+  const [
+    groupRows,
+    classificationsResponse,
+    pointTagsResponse,
+    eventTypesResponse,
+    speciesCatalogResponse,
+    initialUsers,
+  ] =
     await Promise.all([
       context.is_super_admin
         ? supabase.rpc("list_groups")
@@ -53,6 +62,12 @@ export default async function AdminPage({
       canManageGlobalCatalogs
         ? loadPointClassifications(supabase, true)
         : Promise.resolve({ data: [] as PointClassificationRecord[], error: null }),
+      canManageGlobalCatalogs
+        ? loadPointTags(supabase, {
+            pointClassificationId: null,
+            onlyActive: false,
+          })
+        : Promise.resolve({ data: [] as PointTagRecord[], error: null }),
       canManageGlobalCatalogs
         ? supabase.rpc("list_point_event_types", {
             p_point_classification_id: null,
@@ -71,12 +86,16 @@ export default async function AdminPage({
     ]);
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const requestedSection =
+    resolvedSearchParams?.section === "tags"
+      ? "classifications"
+      : resolvedSearchParams?.section;
   const availableSections = context.is_super_admin
     ? ["groups", "users", "classifications", "event-types", "species"]
     : ["groups", "users"];
   const initialSection =
-    resolvedSearchParams?.section && availableSections.includes(resolvedSearchParams.section)
-      ? (resolvedSearchParams.section as
+    requestedSection && availableSections.includes(requestedSection)
+      ? (requestedSection as
           | "groups"
           | "users"
           | "classifications"
@@ -99,6 +118,7 @@ export default async function AdminPage({
       initialSpeciesCatalog={(speciesCatalogResponse.data ?? []) as SpeciesRecord[]}
       initialUsers={initialUsers}
       initialSection={initialSection}
+      initialPointTags={(pointTagsResponse.data ?? []) as PointTagRecord[]}
       initialSpeciesCommonName={resolvedSearchParams?.commonName ?? ""}
     />
   );
@@ -113,7 +133,7 @@ async function loadAdminUsers(
       await Promise.all([
         adminSupabase
           .from("users")
-          .select("id, auth_user_id, name, email, created_at")
+          .select("id, auth_user_id, name, email, preferred_group_id, created_at")
           .order("name", { ascending: true }),
         adminSupabase
           .from("user_groups")
@@ -135,6 +155,7 @@ async function loadAdminUsers(
 
     return ((usersData ?? []) as UserQueryRow[]).map<AdminUserRecord>((user) => ({
       ...user,
+      ...resolvePreferredGroup(membershipsByUserId.get(user.id) ?? [], user.preferred_group_id),
       memberships: membershipsByUserId.get(user.id) ?? [],
       hidden_membership_count: 0,
     }));
@@ -165,7 +186,7 @@ async function loadAdminUsers(
     await Promise.all([
       adminSupabase
         .from("users")
-        .select("id, auth_user_id, name, email, created_at")
+        .select("id, auth_user_id, name, email, preferred_group_id, created_at")
         .in("id", userIds)
         .order("name", { ascending: true }),
       adminSupabase
@@ -205,6 +226,7 @@ async function loadAdminUsers(
 
       return {
         ...user,
+        ...resolvePreferredGroup(memberships, user.preferred_group_id),
         memberships,
         hidden_membership_count: Math.max(totalMemberships - memberships.length, 0),
       };
@@ -236,11 +258,26 @@ function buildMembershipMap(memberships: MembershipQueryRow[]) {
   return membershipsByUserId;
 }
 
+function resolvePreferredGroup(
+  memberships: AdminUserGroupMembership[],
+  preferredGroupId: string | null,
+) {
+  const preferredMembership = memberships.find((membership) => membership.group_id === preferredGroupId);
+
+  return {
+    preferred_group_id: preferredGroupId,
+    preferred_group_name: preferredMembership?.group_name ?? null,
+    preferred_group_code: preferredMembership?.group_code ?? null,
+    preferred_group_hidden: Boolean(preferredGroupId) && !preferredMembership,
+  };
+}
+
 type UserQueryRow = {
   id: string;
   auth_user_id: string;
   name: string;
   email: string;
+  preferred_group_id: string | null;
   created_at: string;
 };
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EditPointPage } from "@/components/points/edit-point-page";
 import { requireUserContext } from "@/lib/auth";
 import { withGroupLogo, withPointGroupLogo } from "@/lib/group-logos";
+import { attachPointTagsToPoint } from "@/lib/point-tags";
 import { getPointMedia } from "@/lib/point-timeline";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
@@ -36,7 +37,7 @@ export default async function EditPointRoute({
     notFound();
   }
 
-  const point = withPointGroupLogo(rawPoint);
+  const point = withPointGroupLogo(await attachPointTagsToPoint(supabase, rawPoint));
   const submissionGroups = context.submission_groups;
   const currentPointGroup =
     submissionGroups.find((group) => group.id === point.group_id) ??

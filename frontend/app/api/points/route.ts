@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { attachPointTagsToPoint, attachPointTagsToPoints } from "@/lib/point-tags";
 import { filterVisiblePoints } from "@/lib/point-visibility";
 import {
   MAX_POINT_FILES,
@@ -11,6 +12,10 @@ import {
   validatePointMediaFiles,
   type PointMediaUploadInput,
 } from "@/lib/point-media";
+import {
+  replacePointTagAssignments,
+  validatePointTagSelection,
+} from "@/lib/server/point-tag-service";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PointRecord } from "@/types/domain";
@@ -24,6 +29,7 @@ interface PointInput {
   description: string | null;
   isPublic: boolean;
   speciesId: string | null;
+  tagIds: string[];
 }
 
 export async function GET(request: Request) {
@@ -60,11 +66,10 @@ export async function GET(request: Request) {
     viewerProfileId = profile?.id ?? null;
   }
 
-  return NextResponse.json(
-    filterVisiblePoints((((data ?? []) as PointRecord[]) ?? []), viewerProfileId).map(
-      withPointGroupLogo,
-    ),
-  );
+  const visiblePoints = filterVisiblePoints((((data ?? []) as PointRecord[]) ?? []), viewerProfileId);
+  const pointsWithTags = await attachPointTagsToPoints(supabase, visiblePoints);
+
+  return NextResponse.json(pointsWithTags.map(withPointGroupLogo));
 }
 
 export async function POST(request: Request) {
@@ -96,7 +101,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: point.error }, { status: point.status });
   }
 
-  return NextResponse.json(withPointGroupLogo(point.data), { status: 201 });
+  try {
+    const validatedTagIds = await validatePointTagSelection({
+      supabase,
+      classificationId: parsed.classificationId,
+      tagIds: parsed.tagIds,
+    });
+    const adminSupabase = createAdminSupabaseClient();
+
+    await replacePointTagAssignments({
+      adminSupabase,
+      pointId: point.data.id,
+      tagIds: validatedTagIds,
+      createdBy: point.data.created_by,
+    });
+  } catch (error) {
+    const adminSupabase = createAdminSupabaseClient();
+    await rollbackPointCreate(adminSupabase, point.data.id);
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Nao foi possivel salvar as tags do ponto." },
+      { status: 400 },
+    );
+  }
+
+  const pointWithTags = await attachPointTagsToPoint(supabase, point.data);
+
+  return NextResponse.json(withPointGroupLogo(pointWithTags), { status: 201 });
 }
 
 function parsePointInput(body: unknown): PointInput | null {
@@ -124,6 +155,9 @@ function parsePointInput(body: unknown): PointInput | null {
   return {
     groupId: payload.groupId,
     classificationId: payload.classificationId,
+    tagIds: Array.isArray(payload.tagIds)
+      ? payload.tagIds.filter((tagId): tagId is string => typeof tagId === "string")
+      : [],
     title: payload.title.trim(),
     longitude,
     latitude,
@@ -176,6 +210,11 @@ async function handleMultipartPointRequest(
   const parsed = parsePointInput({
     groupId: `${formData.get("groupId") ?? ""}`.trim(),
     classificationId: `${formData.get("classificationId") ?? ""}`.trim(),
+    tagIds: formData
+      .getAll("tagIds")
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
     title: `${formData.get("title") ?? ""}`.trim(),
     longitude: `${formData.get("longitude") ?? ""}`.trim(),
     latitude: `${formData.get("latitude") ?? ""}`.trim(),
@@ -215,29 +254,44 @@ async function handleMultipartPointRequest(
     return NextResponse.json({ error: createdPoint.error }, { status: createdPoint.status });
   }
 
-  if (!files.length) {
-    return NextResponse.json(withPointGroupLogo(createdPoint.data), { status: 201 });
-  }
-
   const adminSupabase = createAdminSupabaseClient();
   let uploadedMedia: StoredPointMediaDescriptor[] = [];
 
   try {
-    uploadedMedia = await uploadPointMediaFiles(
-      createdPoint.data.id,
-      files.map<PointMediaUploadInput>((file, index) => {
-        const captionEntry = photoCaptionEntries[index];
-        return {
-          file,
-          caption: typeof captionEntry === "string" ? captionEntry : null,
-        };
-      }),
-      "point",
-    );
+    const validatedTagIds = await validatePointTagSelection({
+      supabase,
+      classificationId: parsed.classificationId,
+      tagIds: parsed.tagIds,
+    });
 
-    await replaceCurrentPointMedia(createdPoint.data.id, uploadedMedia);
+    if (files.length) {
+      uploadedMedia = await uploadPointMediaFiles(
+        createdPoint.data.id,
+        files.map<PointMediaUploadInput>((file, index) => {
+          const captionEntry = photoCaptionEntries[index];
+          return {
+            file,
+            caption: typeof captionEntry === "string" ? captionEntry : null,
+          };
+        }),
+        "point",
+      );
+    }
 
-    return NextResponse.json(withPointGroupLogo(createdPoint.data), { status: 201 });
+    if (uploadedMedia.length) {
+      await replaceCurrentPointMedia(createdPoint.data.id, uploadedMedia);
+    }
+
+    await replacePointTagAssignments({
+      adminSupabase,
+      pointId: createdPoint.data.id,
+      tagIds: validatedTagIds,
+      createdBy: createdPoint.data.created_by,
+    });
+
+    const pointWithTags = await attachPointTagsToPoint(supabase, createdPoint.data);
+
+    return NextResponse.json(withPointGroupLogo(pointWithTags), { status: 201 });
   } catch (error) {
     if (uploadedMedia.length) {
       await removeStoredPointMedia(uploadedMedia).catch(() => undefined);

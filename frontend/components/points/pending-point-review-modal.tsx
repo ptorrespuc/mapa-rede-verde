@@ -178,6 +178,11 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
         <InfoCard label="Titulo" value={summary.proposed.title} />
         <InfoCard label="Especie" value={summary.proposed.speciesName ?? "Sem especie"} />
         <InfoCard
+          label="Tags"
+          value={summary.proposed.tagNames.length ? summary.proposed.tagNames.join(", ") : "Sem tags"}
+          multiline
+        />
+        <InfoCard
           label="Visibilidade"
           value={summary.proposed.isPublic ? "Publico" : "Privado"}
         />

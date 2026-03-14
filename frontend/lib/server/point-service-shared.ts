@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PostgrestError } from "@supabase/supabase-js";
 
+import { attachPointTagsToPoint } from "@/lib/point-tags";
 import { ApiRouteError } from "@/lib/server/api-route";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -35,7 +36,7 @@ export async function loadPointDetailOrThrow(
     });
   }
 
-  return point;
+  return attachPointTagsToPoint(supabase, point);
 }
 
 export async function loadViewerProfileId(

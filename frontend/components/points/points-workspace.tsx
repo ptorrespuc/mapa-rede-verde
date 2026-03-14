@@ -8,9 +8,15 @@ import { toast } from "sonner";
 
 import { PointFilters } from "@/components/points/point-filters";
 import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { apiClient } from "@/lib/api-client";
 import { getPointDisplayColor, getPointDisplayStatusLabel } from "@/lib/point-display";
-import type { GroupRecord, PointClassificationRecord, PointRecord } from "@/types/domain";
+import type {
+  GroupRecord,
+  PointClassificationRecord,
+  PointRecord,
+  PointTagRecord,
+} from "@/types/domain";
 
 interface PointsWorkspaceProps {
   initialPoints: PointRecord[];
@@ -20,6 +26,7 @@ interface PointsWorkspaceProps {
   submissionGroups: GroupRecord[];
   approvableGroups: GroupRecord[];
   classifications: PointClassificationRecord[];
+  pointTags: PointTagRecord[];
 }
 
 export function PointsWorkspace({
@@ -30,6 +37,7 @@ export function PointsWorkspace({
   submissionGroups,
   approvableGroups,
   classifications,
+  pointTags,
 }: PointsWorkspaceProps) {
   const pathname = usePathname();
   const initialSelectedGroup =
@@ -45,6 +53,9 @@ export function PointsWorkspace({
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
   const [mineOnly, setMineOnly] = useState(defaultMineOnly);
+  const [isTagFilterOpen, setIsTagFilterOpen] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedSpeciesIds, setSelectedSpeciesIds] = useState<string[]>([]);
   const [isGroupSelectionImplicit, setIsGroupSelectionImplicit] = useState(
     initialGroupSelectionWasImplicit,
   );
@@ -63,6 +74,41 @@ export function PointsWorkspace({
       ? submissionGroups.some((group) => group.id === selectedGroup.id)
       : submissionGroups.length > 0);
   const hasApprovalScope = approvableGroups.length > 0;
+  const visibleTagOptions = useMemo(() => {
+    if (classificationFilter === "all") {
+      return [] as PointTagRecord[];
+    }
+
+    return [...pointTags]
+      .filter(
+        (tag) => tag.is_active && tag.point_classification_id === classificationFilter,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [classificationFilter, pointTags]);
+  const visibleSpeciesOptions = useMemo(() => {
+    const speciesById = new Map<string, { id: string; label: string }>();
+
+    for (const point of points) {
+      if (
+        (classificationFilter !== "all" && point.classification_id !== classificationFilter) ||
+        !point.classification_requires_species ||
+        !point.species_id
+      ) {
+        continue;
+      }
+
+      speciesById.set(point.species_id, {
+        id: point.species_id,
+        label:
+          point.species_common_name ??
+          point.species_name ??
+          point.species_scientific_name ??
+          "Especie sem nome",
+      });
+    }
+
+    return [...speciesById.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [classificationFilter, points]);
 
   useEffect(() => {
     let ignore = false;
@@ -106,6 +152,14 @@ export function PointsWorkspace({
       ignore = true;
     };
   }, [classificationFilter, groupFilter, pendingOnly, mineOnly]);
+
+  useEffect(() => {
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+  }, [visibleTagOptions]);
+
+  useEffect(() => {
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+  }, [visibleSpeciesOptions]);
 
   function syncGroupUrl(nextGroupId: string) {
     if (typeof window === "undefined") {
@@ -174,7 +228,41 @@ export function PointsWorkspace({
   }
 
   const pointRows = useMemo(() => {
-    return points.map((point) => ({
+    const shouldFilterByTags =
+      visibleTagOptions.length > 0 && selectedTagIds.length < visibleTagOptions.length;
+    const shouldFilterBySpecies =
+      visibleSpeciesOptions.length > 0 &&
+      selectedSpeciesIds.length < visibleSpeciesOptions.length;
+
+    const matchesTagFilter = (point: PointRecord) => {
+      if (!shouldFilterByTags) {
+        return true;
+      }
+
+      const pointTagIds = (point.tags ?? [])
+        .filter((tag) => tag.is_active)
+        .map((tag) => tag.id);
+
+      if (!selectedTagIds.length) {
+        return false;
+      }
+
+      return selectedTagIds.some((tagId) => pointTagIds.includes(tagId));
+    };
+
+    const matchesSpeciesFilter = (point: PointRecord) => {
+      if (!point.classification_requires_species || !shouldFilterBySpecies) {
+        return true;
+      }
+
+      if (!selectedSpeciesIds.length) {
+        return false;
+      }
+
+      return Boolean(point.species_id && selectedSpeciesIds.includes(point.species_id));
+    };
+
+    return points.filter((point) => matchesTagFilter(point) && matchesSpeciesFilter(point)).map((point) => ({
       ...point,
       displayStatusLabel: getPointDisplayStatusLabel(point),
       formattedUpdatedAt: new Date(point.updated_at).toLocaleString("pt-BR"),
@@ -182,10 +270,10 @@ export function PointsWorkspace({
         point.approval_status === "approved"
           ? "aprovado"
           : point.approval_status === "pending"
-            ? "pendente"
+          ? "pendente"
             : "rejeitado",
     }));
-  }, [points]);
+  }, [points, selectedSpeciesIds, selectedTagIds, visibleSpeciesOptions, visibleTagOptions]);
   const desktopGroupSwitcherLabel =
     groupFilter === "all"
       ? "Todos os grupos visiveis"
@@ -194,6 +282,22 @@ export function PointsWorkspace({
         : "Trocar grupo";
   const mobileGroupSwitcherLabel =
     groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
+
+  function handleTagToggle(tagId: string) {
+    setSelectedTagIds((current) =>
+      current.includes(tagId)
+        ? current.filter((currentTagId) => currentTagId !== tagId)
+        : [...current, tagId],
+    );
+  }
+
+  function handleSpeciesToggle(speciesId: string) {
+    setSelectedSpeciesIds((current) =>
+      current.includes(speciesId)
+        ? current.filter((currentSpeciesId) => currentSpeciesId !== speciesId)
+        : [...current, speciesId],
+    );
+  }
 
   return (
     <section className="page-stack">
@@ -257,6 +361,14 @@ export function PointsWorkspace({
             value={classificationFilter}
             onChange={setClassificationFilter}
           />
+          <button
+            aria-expanded={isTagFilterOpen}
+            className="button-ghost compact"
+            onClick={() => setIsTagFilterOpen((current) => !current)}
+            type="button"
+          >
+            {isTagFilterOpen ? "Ocultar filtros adicionais" : "Filtrar por tags e especies"}
+          </button>
           <label className="inline-toggle">
             <input
               checked={pendingOnly}
@@ -274,6 +386,66 @@ export function PointsWorkspace({
             <span>Meus pontos</span>
           </label>
         </div>
+
+        {isTagFilterOpen ? (
+          <div className="surface-subtle point-tag-filter-panel stack-sm">
+            <div className="stack-xs">
+              <strong>Especies</strong>
+              <span className="muted">
+                O filtro por especie aparece quando houver pontos de classificacoes que usam especies.
+              </span>
+            </div>
+
+            {visibleSpeciesOptions.length ? (
+              <div className="point-tag-filter-grid">
+                {visibleSpeciesOptions.map((species) => (
+                  <label className="inline-toggle point-tag-filter-option" key={species.id}>
+                    <input
+                      checked={selectedSpeciesIds.includes(species.id)}
+                      onChange={() => handleSpeciesToggle(species.id)}
+                      type="checkbox"
+                    />
+                    <span>{species.label}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <span className="muted">
+                Nenhuma especie disponivel para o filtro atual.
+              </span>
+            )}
+
+            <div className="stack-xs">
+              <strong>Tags</strong>
+              <span className="muted">
+                {classificationFilter === "all"
+                  ? "Escolha uma classificacao para exibir as tags associadas."
+                  : "As tags da classificacao selecionada aparecem marcadas por padrao."}
+              </span>
+            </div>
+
+            {classificationFilter !== "all" ? (
+              visibleTagOptions.length ? (
+                <div className="point-tag-filter-grid">
+                  {visibleTagOptions.map((tag) => (
+                    <label className="inline-toggle point-tag-filter-option" key={tag.id}>
+                      <input
+                        checked={selectedTagIds.includes(tag.id)}
+                        onChange={() => handleTagToggle(tag.id)}
+                        type="checkbox"
+                      />
+                      <span>{tag.name}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <span className="muted">
+                  Esta classificacao ainda nao possui tags cadastradas.
+                </span>
+              )
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
@@ -310,6 +482,11 @@ export function PointsWorkspace({
                     {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
                     {point.viewer_is_creator ? <span className="badge">meu</span> : null}
                   </div>
+                  <PointTagBadges
+                    className="point-tag-list point-tag-list-compact"
+                    limit={3}
+                    tags={point.tags}
+                  />
                 </div>
                 <div className="workspace-point-actions">
                   {point.viewer_can_approve &&

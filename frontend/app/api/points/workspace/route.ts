@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { withPointGroupLogo } from "@/lib/group-logos";
+import { attachPointTagsToPoints } from "@/lib/point-tags";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PointRecord } from "@/types/domain";
 
@@ -34,9 +35,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json(
-    (((data ?? []) as PointRecord[]) ?? [])
-      .filter((point) => point.status !== "archived")
-      .map(withPointGroupLogo),
+  const visiblePoints = (((data ?? []) as PointRecord[]) ?? []).filter(
+    (point) => point.status !== "archived",
   );
+  const pointsWithTags = await attachPointTagsToPoints(supabase, visiblePoints);
+
+  return NextResponse.json(pointsWithTags.map(withPointGroupLogo));
 }

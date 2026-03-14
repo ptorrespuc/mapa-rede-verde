@@ -7,6 +7,7 @@ import type {
   CreatePointEventPayload,
   CreatePointEventTypePayload,
   CreatePointPayload,
+  CreatePointTagPayload,
   CreateSpeciesPayload,
   GroupRecord,
   PointClassificationRecord,
@@ -15,12 +16,14 @@ import type {
   PointEventTypeRecord,
   PointMediaRecord,
   PointRecord,
+  PointTagRecord,
   PendingPointReviewSummary,
   SpeciesRecord,
   UpdateGroupPayload,
   UpdateAdminUserPayload,
   UpdatePointClassificationPayload,
   UpdatePointEventTypePayload,
+  UpdatePointTagPayload,
   UpdatePointPayload,
   UpdateSpeciesPayload,
 } from "@/types/domain";
@@ -82,10 +85,15 @@ export const apiClient = {
       const formData = new FormData();
       formData.append("groupId", payload.groupId);
       formData.append("classificationId", payload.classificationId);
+      formData.append("tagIdsProvided", "true");
       formData.append("title", payload.title);
       formData.append("isPublic", String(payload.isPublic));
       formData.append("longitude", String(payload.longitude));
       formData.append("latitude", String(payload.latitude));
+
+      payload.tagIds?.forEach((tagId) => {
+        formData.append("tagIds", tagId);
+      });
 
       if (payload.speciesId) {
         formData.append("speciesId", payload.speciesId);
@@ -132,6 +140,13 @@ export const apiClient = {
 
       if (payload.classificationId) {
         formData.append("classificationId", payload.classificationId);
+      }
+
+      if (payload.tagIds) {
+        formData.append("tagIdsProvided", "true");
+        payload.tagIds.forEach((tagId) => {
+          formData.append("tagIds", tagId);
+        });
       }
 
       if (payload.title) {
@@ -275,6 +290,43 @@ export const apiClient = {
     return request<PointClassificationRecord[]>("/api/point-classifications", {
       method: "GET",
     });
+  },
+  getPointTags(params?: { pointClassificationId?: string; onlyActive?: boolean }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.pointClassificationId) {
+      searchParams.set("pointClassificationId", params.pointClassificationId);
+    }
+
+    if (typeof params?.onlyActive === "boolean") {
+      searchParams.set("onlyActive", String(params.onlyActive));
+    }
+
+    const query = searchParams.toString();
+
+    return request<PointTagRecord[]>(`/api/point-tags${query ? `?${query}` : ""}`, {
+      method: "GET",
+    });
+  },
+  createPointTag(payload: CreatePointTagPayload) {
+    return request<PointTagRecord>("/api/point-tags", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  updatePointTag(id: string, payload: UpdatePointTagPayload) {
+    return request<PointTagRecord>(`/api/point-tags/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+  deletePointTag(id: string) {
+    return request<{ mode: "logical" | "physical"; tag: PointTagRecord | null }>(
+      `/api/point-tags/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
   },
   createPointClassification(payload: CreatePointClassificationPayload) {
     return request<PointClassificationRecord>("/api/point-classifications", {
@@ -438,6 +490,7 @@ export const apiClient = {
       email: string;
       inviteSent: boolean;
       groupId: string;
+      preferredGroupId: string;
       role: string;
       redirectTo: string;
     }>("/api/admin/users", {

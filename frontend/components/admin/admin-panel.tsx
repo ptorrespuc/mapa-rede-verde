@@ -5,22 +5,29 @@ import { toast } from "sonner";
 
 import { GroupLogoEditor } from "@/components/admin/group-logo-editor";
 import { AdminModal } from "@/components/admin/admin-modal";
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { apiClient } from "@/lib/api-client";
 import {
   USER_ROLE_LABELS,
   USER_ROLE_OPTIONS,
   type AdminUserGroupMembership,
   type AdminUserRecord,
-  type CreateAdminUserPayload,
   type GroupRecord,
   type PointClassificationRecord,
   type PointEventTypeRecord,
+  type PointTagRecord,
   type SpeciesRecord,
   type UpdateAdminUserPayload,
   type UserRole,
 } from "@/types/domain";
 
-type AdminSection = "groups" | "users" | "classifications" | "event-types" | "species";
+type AdminSection =
+  | "groups"
+  | "users"
+  | "classifications"
+  | "tags"
+  | "event-types"
+  | "species";
 type ModalMode = "create" | "edit";
 
 interface AdminPanelProps {
@@ -32,6 +39,7 @@ interface AdminPanelProps {
   initialGroups: GroupRecord[];
   initialUsers: AdminUserRecord[];
   initialClassifications: PointClassificationRecord[];
+  initialPointTags: PointTagRecord[];
   initialEventTypes: PointEventTypeRecord[];
   initialSpeciesCatalog: SpeciesRecord[];
   initialSection?: AdminSection;
@@ -47,6 +55,16 @@ interface UserCredentials {
 interface EditableUserMembership {
   groupId: string;
   role: UserRole;
+}
+
+interface UserFormSeed {
+  name?: string;
+  email?: string;
+  groupId?: string;
+  preferredGroupId?: string | null;
+  preferredGroupHidden?: boolean;
+  role?: UserRole;
+  memberships?: Array<EditableUserMembership | AdminUserGroupMembership>;
 }
 
 const SECTION_OPTIONS: Array<{ id: AdminSection; label: string }> = [
@@ -71,6 +89,17 @@ function sortEventTypes(items: PointEventTypeRecord[]) {
   });
 }
 
+function sortPointTags(items: PointTagRecord[]) {
+  return [...items].sort((a, b) => {
+    const byClassification = (a.point_classification_name ?? "").localeCompare(
+      b.point_classification_name ?? "",
+      "pt-BR",
+    );
+
+    return byClassification !== 0 ? byClassification : a.name.localeCompare(b.name, "pt-BR");
+  });
+}
+
 function getDefaultEventTypeClassificationId(
   items: Array<Pick<PointClassificationRecord, "id" | "is_active">>,
 ) {
@@ -86,6 +115,7 @@ export function AdminPanel({
   initialGroups,
   initialUsers,
   initialClassifications,
+  initialPointTags,
   initialEventTypes,
   initialSpeciesCatalog,
   initialSection = "groups",
@@ -97,6 +127,7 @@ export function AdminPanel({
   const [classifications, setClassifications] = useState(() =>
     sortByLocale(initialClassifications, (item) => item.name),
   );
+  const [pointTags, setPointTags] = useState(() => sortPointTags(initialPointTags));
   const [eventTypes, setEventTypes] = useState(() => sortEventTypes(initialEventTypes));
   const [speciesCatalog, setSpeciesCatalog] = useState(() =>
     sortByLocale(initialSpeciesCatalog, (item) => item.common_name),
@@ -105,6 +136,7 @@ export function AdminPanel({
   const [modalSection, setModalSection] = useState<AdminSection | null>(null);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [tagModalReturnClassificationId, setTagModalReturnClassificationId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedCredentials, setGeneratedCredentials] = useState<UserCredentials | null>(null);
@@ -123,6 +155,9 @@ export function AdminPanel({
   const [userEmail, setUserEmail] = useState("");
   const [userGroupId, setUserGroupId] = useState(initialGroups[0]?.id ?? "");
   const [userRole, setUserRole] = useState<UserRole>("group_collaborator");
+  const [userPreferredGroupId, setUserPreferredGroupId] = useState(initialGroups[0]?.id ?? "");
+  const [userPreferredGroupDirty, setUserPreferredGroupDirty] = useState(false);
+  const [userPreferredGroupHidden, setUserPreferredGroupHidden] = useState(false);
   const [userMemberships, setUserMemberships] = useState<EditableUserMembership[]>(() =>
     initialGroups[0]
       ? [
@@ -139,6 +174,12 @@ export function AdminPanel({
   const [classificationRequiresSpecies, setClassificationRequiresSpecies] = useState(false);
   const [classificationIsActive, setClassificationIsActive] = useState(true);
   const [classificationMarkerColor, setClassificationMarkerColor] = useState("#6a5a91");
+
+  const [tagName, setTagName] = useState("");
+  const [tagSlug, setTagSlug] = useState("");
+  const [tagDescription, setTagDescription] = useState("");
+  const [tagClassificationId, setTagClassificationId] = useState("");
+  const [tagIsActive, setTagIsActive] = useState(true);
 
   const [eventTypeName, setEventTypeName] = useState("");
   const [eventTypeSlug, setEventTypeSlug] = useState("");
@@ -188,7 +229,20 @@ export function AdminPanel({
     () => (editingId ? users.find((user) => user.id === editingId) ?? null : null),
     [editingId, users],
   );
+  const userPreferredGroupOptions = useMemo(() => {
+    const groupIds = Array.from(
+      new Set(userMemberships.map((membership) => membership.groupId).filter(Boolean)),
+    );
+
+    return groupIds
+      .map((groupId) => groups.find((group) => group.id === groupId) ?? null)
+      .filter((group): group is GroupRecord => group !== null);
+  }, [groups, userMemberships]);
   const eventTypeClassificationOptions =
+    modalMode === "create" && activeClassifications.length > 0
+      ? activeClassifications
+      : classifications;
+  const tagClassificationOptions =
     modalMode === "create" && activeClassifications.length > 0
       ? activeClassifications
       : classifications;
@@ -213,6 +267,28 @@ export function AdminPanel({
       );
     });
   }, [showExoticSpecies, showNativeSpecies, speciesCatalog, speciesFilterText]);
+  const pointTagsByClassificationId = useMemo(() => {
+    const grouped = new Map<string, PointTagRecord[]>();
+
+    for (const tag of pointTags) {
+      const current = grouped.get(tag.point_classification_id) ?? [];
+      current.push(tag);
+      grouped.set(tag.point_classification_id, current);
+    }
+
+    for (const [classificationId, tags] of grouped.entries()) {
+      grouped.set(classificationId, sortPointTags(tags));
+    }
+
+    return grouped;
+  }, [pointTags]);
+  const selectedClassificationTags = useMemo(() => {
+    if (modalSection !== "classifications" || !editingId) {
+      return [] as PointTagRecord[];
+    }
+
+    return pointTagsByClassificationId.get(editingId) ?? [];
+  }, [editingId, modalSection, pointTagsByClassificationId]);
 
   const modalTitle = useMemo(() => {
     if (!modalSection) return "";
@@ -220,6 +296,7 @@ export function AdminPanel({
     if (modalSection === "groups") return `${action} grupo`;
     if (modalSection === "users") return `${action} usuario`;
     if (modalSection === "classifications") return `${action} classificacao`;
+    if (modalSection === "tags") return `${action} tag`;
     if (modalSection === "event-types") return `${action} tipo de evento`;
     return `${action} especie`;
   }, [modalMode, modalSection]);
@@ -291,14 +368,15 @@ export function AdminPanel({
     };
   }
 
-  function resetUserForm(
-    seed?: Partial<CreateAdminUserPayload> & {
-      memberships?: Array<EditableUserMembership | AdminUserGroupMembership>;
-    },
-  ) {
+  function resetUserForm(seed?: UserFormSeed) {
     setUserName(seed?.name ?? "");
     setUserEmail(seed?.email ?? "");
     setUserGroupId(seed?.groupId ?? editableGroups[0]?.id ?? groups[0]?.id ?? "");
+    setUserPreferredGroupId(
+      seed?.preferredGroupId ?? seed?.groupId ?? editableGroups[0]?.id ?? groups[0]?.id ?? "",
+    );
+    setUserPreferredGroupDirty(false);
+    setUserPreferredGroupHidden(seed?.preferredGroupHidden ?? false);
     setUserRole(seed?.role ?? "group_collaborator");
     if (seed?.memberships) {
       setUserMemberships(
@@ -309,6 +387,28 @@ export function AdminPanel({
 
     setUserMemberships(editableGroups[0] || groups[0] ? [createEmptyUserMembership()] : []);
   }
+
+  useEffect(() => {
+    if (userPreferredGroupHidden && !userPreferredGroupDirty) {
+      return;
+    }
+
+    if (!userPreferredGroupOptions.length) {
+      if (userPreferredGroupId !== "") {
+        setUserPreferredGroupId("");
+      }
+      return;
+    }
+
+    if (!userPreferredGroupOptions.some((group) => group.id === userPreferredGroupId)) {
+      setUserPreferredGroupId(userPreferredGroupOptions[0]?.id ?? "");
+    }
+  }, [
+    userPreferredGroupDirty,
+    userPreferredGroupHidden,
+    userPreferredGroupId,
+    userPreferredGroupOptions,
+  ]);
 
   function resetClassificationForm(
     seed?: Partial<{
@@ -324,6 +424,24 @@ export function AdminPanel({
     setClassificationRequiresSpecies(seed?.requiresSpecies ?? false);
     setClassificationIsActive(seed?.isActive ?? true);
     setClassificationMarkerColor(seed?.markerColor ?? "#6a5a91");
+  }
+
+  function resetTagForm(
+    seed?: Partial<{
+      pointClassificationId: string;
+      name: string;
+      slug: string;
+      description: string | null;
+      isActive: boolean;
+    }>,
+  ) {
+    setTagClassificationId(
+      seed?.pointClassificationId ?? getDefaultEventTypeClassificationId(classifications),
+    );
+    setTagName(seed?.name ?? "");
+    setTagSlug(seed?.slug ?? "");
+    setTagDescription(seed?.description ?? "");
+    setTagIsActive(seed?.isActive ?? true);
   }
 
   function resetEventTypeForm(
@@ -351,11 +469,52 @@ export function AdminPanel({
   }
 
   function closeModal() {
+    if (modalSection === "tags" && tagModalReturnClassificationId) {
+      const classificationId = tagModalReturnClassificationId;
+      setTagModalReturnClassificationId(null);
+      openEditModal("classifications", classificationId);
+      return;
+    }
+
     setModalSection(null);
     setModalMode("create");
     setEditingId(null);
     setErrorMessage(null);
     setIsSubmitting(false);
+  }
+
+  function openCreateTagModal(classificationId?: string) {
+    setActiveSection("classifications");
+    setModalSection("tags");
+    setModalMode("create");
+    setEditingId(null);
+    setErrorMessage(null);
+    setTagModalReturnClassificationId(classificationId ?? null);
+    resetTagForm({
+      pointClassificationId: classificationId ?? getDefaultEventTypeClassificationId(classifications),
+    });
+  }
+
+  function openEditTagModal(tagId: string, classificationId?: string) {
+    const tag = pointTags.find((item) => item.id === tagId);
+
+    if (!tag) {
+      return;
+    }
+
+    setActiveSection("classifications");
+    setModalSection("tags");
+    setModalMode("edit");
+    setEditingId(tagId);
+    setErrorMessage(null);
+    setTagModalReturnClassificationId(classificationId ?? tag.point_classification_id);
+    resetTagForm({
+      pointClassificationId: tag.point_classification_id,
+      name: tag.name,
+      slug: tag.slug,
+      description: tag.description,
+      isActive: tag.is_active,
+    });
   }
 
   function openCreateModal(section: AdminSection, seed?: { commonName?: string }) {
@@ -368,6 +527,7 @@ export function AdminPanel({
     if (section === "groups") resetGroupForm();
     if (section === "users") resetUserForm();
     if (section === "classifications") resetClassificationForm();
+    if (section === "tags") resetTagForm();
     if (section === "event-types") resetEventTypeForm();
     if (section === "species") {
       resetSpeciesForm({ commonName: seed?.commonName ?? initialSpeciesCommonName });
@@ -389,6 +549,8 @@ export function AdminPanel({
     resetUserForm({
       name: user.name,
       email: user.email,
+      preferredGroupId: user.preferred_group_hidden ? null : user.preferred_group_id,
+      preferredGroupHidden: user.preferred_group_hidden,
       memberships: canEditUserIdentity
         ? user.memberships
         : user.memberships.filter((membership) => manageableGroupIdSet.has(membership.group_id)),
@@ -432,6 +594,19 @@ export function AdminPanel({
         requiresSpecies: item.requires_species,
         isActive: item.is_active,
         markerColor: item.marker_color,
+      });
+      return;
+    }
+
+    if (section === "tags") {
+      const item = pointTags.find((tag) => tag.id === id);
+      if (!item) return;
+      resetTagForm({
+        pointClassificationId: item.point_classification_id,
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        isActive: item.is_active,
       });
       return;
     }
@@ -565,6 +740,7 @@ export function AdminPanel({
             name: userName,
             email: userEmail,
             groupId: userGroupId,
+            preferredGroupId: userPreferredGroupId || userGroupId,
             role: userRole,
           });
           setGeneratedCredentials({
@@ -583,6 +759,10 @@ export function AdminPanel({
                   name: userName.trim(),
                   email: created.email,
                   created_at: new Date().toISOString(),
+                  preferred_group_id: created.preferredGroupId ?? created.groupId,
+                  preferred_group_name: initialGroup?.name ?? null,
+                  preferred_group_code: initialGroup?.code ?? null,
+                  preferred_group_hidden: false,
                   hidden_membership_count: 0,
                   memberships: initialGroup
                     ? [
@@ -604,6 +784,10 @@ export function AdminPanel({
           const updated = await apiClient.updateUser(editingId, {
             name: userName,
             email: userEmail,
+            preferredGroupId:
+              userPreferredGroupHidden && !userPreferredGroupDirty
+                ? undefined
+                : userPreferredGroupId || null,
             memberships: normalizeUserMemberships(userMemberships),
           });
           setUsers((current) =>
@@ -630,6 +814,18 @@ export function AdminPanel({
             sortByLocale([...current, created], (item) => item.name),
           );
           toast.success("Classificacao criada com sucesso.");
+          setActiveSection("classifications");
+          setModalSection("classifications");
+          setModalMode("edit");
+          setEditingId(created.id);
+          resetClassificationForm({
+            name: created.name,
+            slug: created.slug,
+            requiresSpecies: created.requires_species,
+            isActive: created.is_active,
+            markerColor: created.marker_color,
+          });
+          return;
         } else if (editingId) {
           const updated = await apiClient.updatePointClassification(editingId, {
             name: classificationName,
@@ -644,7 +840,41 @@ export function AdminPanel({
               (item) => item.name,
             ),
           );
+          setPointTags((current) =>
+            sortPointTags(
+              current.map((tag) =>
+                tag.point_classification_id === editingId
+                  ? { ...tag, point_classification_name: updated.name }
+                  : tag,
+              ),
+            ),
+          );
           toast.success("Classificacao atualizada com sucesso.");
+        }
+      }
+
+      if (modalSection === "tags") {
+        if (modalMode === "create") {
+          const created = await apiClient.createPointTag({
+            pointClassificationId: tagClassificationId,
+            name: tagName,
+            slug: tagSlug || undefined,
+            description: tagDescription || undefined,
+          });
+          setPointTags((current) => sortPointTags([...current, created]));
+          toast.success("Tag criada com sucesso.");
+        } else if (editingId) {
+          const updated = await apiClient.updatePointTag(editingId, {
+            pointClassificationId: tagClassificationId,
+            name: tagName,
+            slug: tagSlug || undefined,
+            description: tagDescription || null,
+            isActive: tagIsActive,
+          });
+          setPointTags((current) =>
+            sortPointTags(current.map((item) => (item.id === editingId ? updated : item))),
+          );
+          toast.success("Tag atualizada com sucesso.");
         }
       }
 
@@ -832,6 +1062,14 @@ export function AdminPanel({
                   ) : (
                     <span className="muted">Sem grupo vinculado.</span>
                   )}
+                  <span className="muted">
+                    Grupo preferencial:{" "}
+                    {user.preferred_group_name
+                      ? `${user.preferred_group_name} (@${user.preferred_group_code})`
+                      : user.preferred_group_hidden
+                        ? "definido em outro grupo fora do seu escopo."
+                        : "nao definido."}
+                  </span>
                   {user.hidden_membership_count > 0 ? (
                     <span className="muted">
                       Tambem possui acesso em {user.hidden_membership_count}{" "}
@@ -907,6 +1145,16 @@ export function AdminPanel({
                     <span className="muted">
                       {classification.slug} - {classification.marker_color}
                     </span>
+                    <div className="stack-xs">
+                      <PointTagBadges
+                        className="point-tag-list point-tag-list-admin"
+                        limit={8}
+                        tags={pointTagsByClassificationId.get(classification.id) ?? []}
+                      />
+                      {!pointTagsByClassificationId.get(classification.id)?.length ? (
+                        <span className="muted">Nenhuma tag associada.</span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="button-row">
                     <span className="badge">
@@ -914,6 +1162,13 @@ export function AdminPanel({
                       {classification.event_type_count} eventos -{" "}
                       {classification.is_active ? "ativa" : "inativa"}
                     </span>
+                    <button
+                      className="button-ghost"
+                      onClick={() => openCreateTagModal(classification.id)}
+                      type="button"
+                    >
+                      Nova tag
+                    </button>
                     <button
                       className="button-ghost danger"
                       onClick={() => {
@@ -1226,7 +1481,11 @@ export function AdminPanel({
                   <label htmlFor="user-group">Grupo preferencial</label>
                   <select
                     id="user-group"
-                    onChange={(event) => setUserGroupId(event.target.value)}
+                    onChange={(event) => {
+                      setUserGroupId(event.target.value);
+                      setUserPreferredGroupId(event.target.value);
+                      setUserPreferredGroupDirty(true);
+                    }}
                     disabled={editableGroups.length === 1}
                     required
                     value={userGroupId}
@@ -1266,6 +1525,32 @@ export function AdminPanel({
               </>
             ) : (
               <>
+                <div className="field">
+                  <label htmlFor="user-preferred-group">Grupo preferencial</label>
+                  <select
+                    id="user-preferred-group"
+                    disabled={!userPreferredGroupOptions.length}
+                    onChange={(event) => {
+                      setUserPreferredGroupId(event.target.value);
+                      setUserPreferredGroupDirty(true);
+                      setUserPreferredGroupHidden(false);
+                    }}
+                    value={userPreferredGroupId}
+                  >
+                    <option value="">Sem grupo preferencial</option>
+                    {userPreferredGroupOptions.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="hint">
+                    {userPreferredGroupHidden && !userPreferredGroupDirty
+                      ? "O grupo preferencial atual esta em outro grupo fora do seu escopo. Escolha um grupo visivel para substituir essa referencia."
+                      : "O sistema usa esse grupo como referencia inicial quando nao houver outra escolha salva pelo usuario."}
+                  </span>
+                </div>
+
                 <div className="panel-header">
                   <div className="stack-xs">
                     <strong>Vinculos com grupos</strong>
@@ -1395,12 +1680,155 @@ export function AdminPanel({
               </div>
             </div>
             {modalMode === "edit" ? (
+              <>
+                <div className="field">
+                  <label htmlFor="classification-active">Status</label>
+                  <select
+                    id="classification-active"
+                    onChange={(event) => setClassificationIsActive(event.target.value === "active")}
+                    value={classificationIsActive ? "active" : "inactive"}
+                  >
+                    <option value="active">Ativa</option>
+                    <option value="inactive">Inativa</option>
+                  </select>
+                </div>
+                <section className="surface-subtle stack-sm">
+                  <div className="panel-header">
+                    <div className="stack-xs">
+                      <strong>Tags associadas</strong>
+                      <span className="muted">
+                        Renomeie, exclua ou crie novas tags sem sair da classificacao.
+                      </span>
+                    </div>
+                    <button
+                      className="button-ghost"
+                      onClick={() => openCreateTagModal(editingId ?? undefined)}
+                      type="button"
+                    >
+                      Nova tag
+                    </button>
+                  </div>
+
+                  {selectedClassificationTags.length ? (
+                    <div className="list list-spaced">
+                      {selectedClassificationTags.map((tag) => (
+                        <div className="list-row" key={tag.id}>
+                          <div className="stack-xs">
+                            <strong>{tag.name}</strong>
+                            <span className="muted">
+                              {tag.slug}
+                              {!tag.is_active ? " - inativa" : ""}
+                            </span>
+                            {tag.description ? (
+                              <span className="muted">{tag.description}</span>
+                            ) : null}
+                          </div>
+                          <div className="button-row">
+                            <button
+                              className="button-ghost danger"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Deseja excluir esta tag? Se houver pontos relacionados, ela sera apenas desativada.",
+                                  )
+                                ) {
+                                  void handleDeletePointTag(tag.id);
+                                }
+                              }}
+                              type="button"
+                            >
+                              Excluir
+                            </button>
+                            <button
+                              className="button-ghost"
+                              onClick={() => openEditTagModal(tag.id, editingId ?? undefined)}
+                              type="button"
+                            >
+                              Editar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">
+                      Nenhuma tag associada a esta classificacao ainda.
+                    </span>
+                  )}
+                </section>
+              </>
+            ) : (
+              <div className="surface-subtle">
+                <span className="muted">
+                  Salve a classificacao primeiro para cadastrar as tags associadas.
+                </span>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {modalSection === "tags" ? (
+          <>
+            <div className="field">
+              <label htmlFor="tag-classification">Classificacao</label>
+              <select
+                id="tag-classification"
+                disabled={Boolean(tagModalReturnClassificationId)}
+                onChange={(event) => setTagClassificationId(event.target.value)}
+                required
+                value={tagClassificationId}
+              >
+                {tagClassificationOptions.map((classification) => (
+                  <option key={classification.id} value={classification.id}>
+                    {classification.name}
+                    {!classification.is_active ? " (inativa)" : ""}
+                  </option>
+                ))}
+              </select>
+              {tagModalReturnClassificationId ? (
+                <span className="hint">
+                  Esta tag esta sendo editada dentro da classificacao selecionada.
+                </span>
+              ) : null}
+            </div>
+
+            <div className="input-grid two">
               <div className="field">
-                <label htmlFor="classification-active">Status</label>
+                <label htmlFor="tag-name">Nome</label>
+                <input
+                  id="tag-name"
+                  onChange={(event) => setTagName(event.target.value)}
+                  required
+                  value={tagName}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="tag-slug">Slug</label>
+                <input
+                  id="tag-slug"
+                  onChange={(event) => setTagSlug(event.target.value)}
+                  value={tagSlug}
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="tag-description">Descricao</label>
+              <textarea
+                id="tag-description"
+                onChange={(event) => setTagDescription(event.target.value)}
+                placeholder="Explique quando essa tag deve ser usada."
+                value={tagDescription}
+              />
+            </div>
+
+            {modalMode === "edit" ? (
+              <div className="field">
+                <label htmlFor="tag-active">Status</label>
                 <select
-                  id="classification-active"
-                  onChange={(event) => setClassificationIsActive(event.target.value === "active")}
-                  value={classificationIsActive ? "active" : "inactive"}
+                  id="tag-active"
+                  onChange={(event) => setTagIsActive(event.target.value === "active")}
+                  value={tagIsActive ? "active" : "inactive"}
                 >
                   <option value="active">Ativa</option>
                   <option value="inactive">Inativa</option>
@@ -1529,6 +1957,9 @@ export function AdminPanel({
         setClassifications((current) =>
           current.filter((classification) => classification.id !== classificationId),
         );
+        setPointTags((current) =>
+          current.filter((tag) => tag.point_classification_id !== classificationId),
+        );
         toast.success("Classificacao removida permanentemente.");
         return;
       }
@@ -1542,9 +1973,47 @@ export function AdminPanel({
             (classification) => classification.name,
           ),
         );
+        setPointTags((current) =>
+          sortPointTags(
+            current.map((tag) =>
+              tag.point_classification_id === classificationId
+                ? {
+                    ...tag,
+                    point_classification_name: result.classification?.name,
+                  }
+                : tag,
+            ),
+          ),
+        );
       }
 
       toast.success("Classificacao desativada por possuir relacionamentos.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nao foi possivel excluir.";
+      setErrorMessage(message);
+      toast.error(message);
+    }
+  }
+
+  async function handleDeletePointTag(tagId: string) {
+    setErrorMessage(null);
+
+    try {
+      const result = await apiClient.deletePointTag(tagId);
+
+      if (result.mode === "physical") {
+        setPointTags((current) => current.filter((tag) => tag.id !== tagId));
+        toast.success("Tag removida permanentemente.");
+        return;
+      }
+
+      if (result.tag) {
+        setPointTags((current) =>
+          sortPointTags(current.map((tag) => (tag.id === tagId ? result.tag! : tag))),
+        );
+      }
+
+      toast.success("Tag desativada por possuir relacionamentos.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Nao foi possivel excluir.";
       setErrorMessage(message);

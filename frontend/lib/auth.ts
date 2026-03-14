@@ -17,7 +17,7 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
   const [{ data: profile }, { data: groups }] = await Promise.all([
     supabase
       .from("users")
-      .select("id, auth_user_id, name, email, created_at")
+      .select("id, auth_user_id, name, email, preferred_group_id, created_at")
       .eq("auth_user_id", user.id)
       .single(),
     supabase.rpc("list_groups"),
@@ -34,6 +34,8 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
   );
   const submissionGroups = memberships.filter((group) => group.viewer_can_submit_points);
   const approvableGroups = memberships.filter((group) => group.viewer_can_approve_points);
+  const preferredGroup =
+    memberships.find((group) => group.id === (profile as UserProfile).preferred_group_id) ?? null;
 
   return {
     profile: profile as UserProfile,
@@ -41,6 +43,7 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
     manageable_groups: manageableGroups,
     submission_groups: submissionGroups,
     approvable_groups: approvableGroups,
+    preferred_group: preferredGroup,
     is_super_admin: memberships.some((group) => group.my_role === "super_admin"),
     has_group_admin: memberships.some(
       (group) => group.my_role === "group_admin" || group.my_role === "super_admin",

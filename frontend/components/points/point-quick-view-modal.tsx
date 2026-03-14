@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { apiClient } from "@/lib/api-client";
 import { getPointDisplayStatusLabel, isPointPendingForReview } from "@/lib/point-display";
 import { PointReviewActions } from "@/components/points/point-review-actions";
@@ -124,6 +125,7 @@ export function PointQuickViewModal({
           </span>
           {currentPoint.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
         </div>
+        <PointTagBadges className="point-tag-list point-tag-list-compact" tags={currentPoint.tags} />
 
         {currentPoint.classification_requires_species && currentPoint.species_name ? (
           <div className="surface-subtle stack-xs">
