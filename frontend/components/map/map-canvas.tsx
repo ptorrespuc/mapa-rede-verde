@@ -81,6 +81,17 @@ function createPopupContent(
     wrapper.appendChild(species);
   }
 
+  if (point.tags?.length) {
+    const tags = document.createElement("p");
+    tags.textContent = `Tags: ${point.tags
+      .slice(0, 3)
+      .map((tag) => tag.name)
+      .join(", ")}`;
+    tags.style.margin = "0.35rem 0 0";
+    tags.style.color = "#506056";
+    wrapper.appendChild(tags);
+  }
+
   if (onOpenSummary) {
     const actions = document.createElement("div");
     actions.style.marginTop = "0.7rem";

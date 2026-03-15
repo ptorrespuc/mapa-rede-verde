@@ -5,6 +5,7 @@ import { Camera, Crosshair, MapPinned, PencilLine } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PointCoordinatePickerModal } from "@/components/points/point-coordinate-picker-modal";
+import { apiClient } from "@/lib/api-client";
 import {
   formatProcessedImageLabel,
   processImageForUpload,
@@ -15,6 +16,7 @@ import type {
   PointClassificationRecord,
   PointMediaRecord,
   PointPhotoUpdateMode,
+  PointTagRecord,
   SpeciesRecord,
 } from "@/types/domain";
 
@@ -37,6 +39,7 @@ interface PointFormProps {
 interface PointFormState {
   groupId: string;
   classificationId: string;
+  tagIds: string[];
   title: string;
   speciesId: string;
   description: string;
@@ -76,6 +79,7 @@ function buildState(
   return {
     groupId: values?.groupId ?? initialGroup?.id ?? "",
     classificationId: values?.classificationId ?? initialClassification?.id ?? "",
+    tagIds: values?.tagIds ?? [],
     title: values?.title ?? "",
     speciesId: values?.speciesId ?? "",
     description: values?.description ?? "",
@@ -106,9 +110,11 @@ export function PointForm({
   );
   const [formState, setFormState] = useState<PointFormState>(defaults);
   const [speciesSearch, setSpeciesSearch] = useState("");
+  const [availableTags, setAvailableTags] = useState<PointTagRecord[]>([]);
   const [pointPhotoDrafts, setPointPhotoDrafts] = useState<PointPhotoDraft[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [showCoordinateEditor, setShowCoordinateEditor] = useState(
     !Boolean(defaults.longitude && defaults.latitude),
@@ -151,6 +157,71 @@ export function PointForm({
     const selectedSpecies = speciesCatalog.find((species) => species.id === defaults.speciesId);
     setSpeciesSearch(selectedSpecies?.display_name ?? "");
   }, [defaults.speciesId, speciesCatalog]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadTags() {
+      if (!formState.classificationId) {
+        setAvailableTags([]);
+        setFormState((current) =>
+          current.tagIds.length ? { ...current, tagIds: [] } : current,
+        );
+        return;
+      }
+
+      setIsLoadingTags(true);
+      setErrorMessage(null);
+
+      try {
+        const nextTags = await apiClient.getPointTags({
+          pointClassificationId: formState.classificationId,
+          onlyActive: true,
+        });
+
+        if (ignore) {
+          return;
+        }
+
+        setAvailableTags(nextTags);
+        const nextTagIds = new Set(nextTags.map((tag) => tag.id));
+        setFormState((current) => {
+          const filteredTagIds = current.tagIds.filter((tagId) => nextTagIds.has(tagId));
+
+          if (
+            filteredTagIds.length === current.tagIds.length &&
+            filteredTagIds.every((tagId, index) => tagId === current.tagIds[index])
+          ) {
+            return current;
+          }
+
+          return {
+            ...current,
+            tagIds: filteredTagIds,
+          };
+        });
+      } catch (error) {
+        if (!ignore) {
+          setAvailableTags([]);
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Nao foi possivel carregar as tags desta classificacao.",
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingTags(false);
+        }
+      }
+    }
+
+    void loadTags();
+
+    return () => {
+      ignore = true;
+    };
+  }, [formState.classificationId]);
 
   const selectedGroup = groups.find((group) => group.id === formState.groupId) ?? null;
   const selectedClassification =
@@ -281,6 +352,19 @@ export function PointForm({
 
   function setField<Key extends keyof PointFormState>(key: Key, value: PointFormState[Key]) {
     setFormState((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleTag(tagId: string) {
+    setFormState((current) => {
+      const hasTag = current.tagIds.includes(tagId);
+
+      return {
+        ...current,
+        tagIds: hasTag
+          ? current.tagIds.filter((currentTagId) => currentTagId !== tagId)
+          : [...current.tagIds, tagId],
+      };
+    });
   }
 
   function applyCoordinatesFromMap(coordinates: { latitude: number; longitude: number }) {
@@ -419,6 +503,7 @@ export function PointForm({
       await onSubmit({
         groupId: formState.groupId,
         classificationId: formState.classificationId,
+        tagIds: formState.tagIds,
         title: formState.title.trim(),
         speciesId: requiresSpecies ? formState.speciesId : undefined,
         description: formState.description.trim(),
@@ -593,6 +678,38 @@ export function PointForm({
                 </Link>
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {isLoadingTags ? (
+          <div className="surface-subtle">
+            <span className="muted">Carregando tags da classificacao...</span>
+          </div>
+        ) : availableTags.length ? (
+          <div className="field">
+            <label>Tags do ponto</label>
+            <div className="tag-selection-grid">
+              {availableTags.map((tag) => {
+                const isSelected = formState.tagIds.includes(tag.id);
+
+                return (
+                  <label
+                    className={`tag-selection-chip${isSelected ? " selected" : ""}`}
+                    key={tag.id}
+                  >
+                    <input
+                      checked={isSelected}
+                      onChange={() => toggleTag(tag.id)}
+                      type="checkbox"
+                    />
+                    <span>{tag.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <span className="hint">
+              Use as tags para detalhar a situacao do ponto dentro desta classificacao.
+            </span>
           </div>
         ) : null}
 

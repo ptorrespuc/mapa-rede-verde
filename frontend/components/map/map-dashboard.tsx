@@ -21,8 +21,8 @@ import { toast } from "sonner";
 
 import { MapCanvas, type MapCanvasHandle } from "@/components/map/map-canvas";
 import { PointCreationModal } from "@/components/points/point-creation-modal";
-import { PointFilters } from "@/components/points/point-filters";
 import { PointQuickViewModal } from "@/components/points/point-quick-view-modal";
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { apiClient } from "@/lib/api-client";
 import { getPointDisplayColor, isPointPendingForReview } from "@/lib/point-display";
 import {
@@ -30,6 +30,7 @@ import {
   type GroupRecord,
   type PointClassificationRecord,
   type PointRecord,
+  type PointTagRecord,
   type SpeciesRecord,
 } from "@/types/domain";
 
@@ -41,6 +42,7 @@ interface MapDashboardProps {
   submissionGroups: GroupRecord[];
   approvableGroups: GroupRecord[];
   classifications: PointClassificationRecord[];
+  pointTags: PointTagRecord[];
   speciesCatalog: SpeciesRecord[];
   speciesAdminHref?: string;
   isAuthenticated: boolean;
@@ -108,6 +110,7 @@ export function MapDashboard({
   submissionGroups,
   approvableGroups,
   classifications,
+  pointTags,
   speciesCatalog,
   speciesAdminHref,
   isAuthenticated,
@@ -123,14 +126,22 @@ export function MapDashboard({
   const [points, setPoints] = useState(initialPoints);
   const [focusedPointId, setFocusedPointId] = useState<string | null>(null);
   const [quickViewPoint, setQuickViewPoint] = useState<PointRecord | null>(null);
-  const [filter, setFilter] = useState<string>("all");
+  const activeClassificationIds = useMemo(() => {
+    const active = classifications.filter((classification) => classification.is_active);
+    return (active.length ? active : classifications).map((classification) => classification.id);
+  }, [classifications]);
+  const [selectedClassificationIds, setSelectedClassificationIds] = useState<string[]>(
+    activeClassificationIds,
+  );
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
   const [isGroupSelectionImplicit, setIsGroupSelectionImplicit] = useState(
     initialGroupSelectionWasImplicit,
   );
   const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedSpeciesIds, setSelectedSpeciesIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -155,6 +166,46 @@ export function MapDashboard({
     groupFilter === "all"
       ? approvableGroups.length > 0
       : approvableGroups.some((group) => group.id === groupFilter);
+  const visibleTagOptions = useMemo(() => {
+    if (!selectedClassificationIds.length) {
+      return [] as PointTagRecord[];
+    }
+
+    return [...pointTags]
+      .filter(
+        (tag) =>
+          tag.is_active && selectedClassificationIds.includes(tag.point_classification_id),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [pointTags, selectedClassificationIds]);
+  const visibleSpeciesOptions = useMemo(() => {
+    if (!selectedClassificationIds.length) {
+      return [] as Array<{ id: string; label: string }>;
+    }
+
+    const speciesById = new Map<string, { id: string; label: string }>();
+
+    for (const point of points) {
+      if (
+        !selectedClassificationIds.includes(point.classification_id) ||
+        !point.classification_requires_species ||
+        !point.species_id
+      ) {
+        continue;
+      }
+
+      speciesById.set(point.species_id, {
+        id: point.species_id,
+        label:
+          point.species_common_name ??
+          point.species_name ??
+          point.species_scientific_name ??
+          "Especie sem nome",
+      });
+    }
+
+    return [...speciesById.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [points, selectedClassificationIds]);
 
   useEffect(() => {
     let ignore = false;
@@ -164,7 +215,6 @@ export function MapDashboard({
 
       try {
         const nextPoints = await apiClient.getPointsWithFilters({
-          classificationId: filter,
           groupId: groupFilter,
         });
 
@@ -198,11 +248,26 @@ export function MapDashboard({
     return () => {
       ignore = true;
     };
-  }, [filter, groupFilter]);
+  }, [groupFilter]);
+
+  useEffect(() => {
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+  }, [visibleTagOptions]);
+
+  useEffect(() => {
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+  }, [visibleSpeciesOptions]);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, groupFilter, pendingOnly, points.length]);
+  }, [
+    groupFilter,
+    pendingOnly,
+    points.length,
+    selectedClassificationIds,
+    selectedSpeciesIds,
+    selectedTagIds,
+  ]);
 
   function syncGroupUrl(nextGroupId: string) {
     if (typeof window === "undefined") {
@@ -243,9 +308,8 @@ export function MapDashboard({
     syncGroupUrl(nextGroupId);
   }
 
-  async function refreshPoints(nextFilter: string, nextGroupFilter: string) {
+  async function refreshPoints(nextGroupFilter: string) {
     const nextPoints = await apiClient.getPointsWithFilters({
-      classificationId: nextFilter,
       groupId: nextGroupFilter,
     });
     setPoints(nextPoints);
@@ -257,22 +321,20 @@ export function MapDashboard({
 
     try {
       const createdPoint = await apiClient.createPoint(payload);
-      const nextFilter =
-        filter !== "all" && filter !== createdPoint.classification_id ? "all" : filter;
       const nextGroupFilter =
         groupFilter !== "all" && groupFilter !== createdPoint.group_id
           ? createdPoint.group_id
           : groupFilter;
 
-      if (nextFilter !== filter) {
-        setFilter(nextFilter);
-      }
-
       if (nextGroupFilter !== groupFilter) {
         applyGroupSelection(nextGroupFilter);
       }
 
-      const nextPoints = await refreshPoints(nextFilter, nextGroupFilter);
+      if (!selectedClassificationIds.includes(createdPoint.classification_id)) {
+        setSelectedClassificationIds((current) => [...current, createdPoint.classification_id]);
+      }
+
+      const nextPoints = await refreshPoints(nextGroupFilter);
       const nextPoint = nextPoints.find((point) => point.id === createdPoint.id) ?? createdPoint;
       setFocusedPointId(nextPoint.id);
       setQuickViewPoint(nextPoint);
@@ -293,7 +355,7 @@ export function MapDashboard({
   async function handleReviewPoint(point: PointRecord, action: "approve" | "reject") {
     try {
       const updatedPoint = await apiClient.reviewPoint(point.id, action);
-      const nextPoints = await refreshPoints(filter, groupFilter);
+      const nextPoints = await refreshPoints(groupFilter);
       const nextPoint = nextPoints.find((item) => item.id === updatedPoint.id) ?? null;
       const shouldKeepVisible = nextPoint && (!pendingOnly || isPointPendingForReview(nextPoint));
 
@@ -317,7 +379,7 @@ export function MapDashboard({
   async function handleDeletePoint(point: PointRecord) {
     try {
       await apiClient.deletePoint(point.id);
-      await refreshPoints(filter, groupFilter);
+      await refreshPoints(groupFilter);
       setQuickViewPoint(null);
       setFocusedPointId((current) => (current === point.id ? null : current));
       toast.success("Ponto arquivado com sucesso.");
@@ -344,7 +406,7 @@ export function MapDashboard({
         return;
       }
 
-      setIsMobileFiltersOpen(false);
+      setIsFiltersOpen(false);
       toast.success(result.message ?? "Endereco localizado no mapa.");
     } finally {
       setIsSearchingAddress(false);
@@ -448,12 +510,56 @@ export function MapDashboard({
   }
 
   const filteredPoints = useMemo(() => {
-    if (!pendingOnly) {
-      return points;
-    }
+    const shouldFilterByTags =
+      visibleTagOptions.length > 0 && selectedTagIds.length < visibleTagOptions.length;
+    const shouldFilterBySpecies =
+      visibleSpeciesOptions.length > 0 &&
+      selectedSpeciesIds.length < visibleSpeciesOptions.length;
 
-    return points.filter((point) => isPointPendingForReview(point));
-  }, [pendingOnly, points]);
+    return points.filter((point) => {
+      if (!selectedClassificationIds.length) {
+        return false;
+      }
+
+      if (pendingOnly && !isPointPendingForReview(point)) {
+        return false;
+      }
+
+      if (!selectedClassificationIds.includes(point.classification_id)) {
+        return false;
+      }
+
+      if (
+        point.classification_requires_species &&
+        shouldFilterBySpecies &&
+        (!point.species_id || !selectedSpeciesIds.includes(point.species_id))
+      ) {
+        return false;
+      }
+
+      if (!shouldFilterByTags) {
+        return true;
+      }
+
+      if (!selectedTagIds.length) {
+        return false;
+      }
+
+      const pointTagIds = (point.tags ?? [])
+        .filter((tag) => tag.is_active)
+        .map((tag) => tag.id);
+
+      return selectedTagIds.some((tagId) => pointTagIds.includes(tagId));
+    });
+  }, [
+    pendingOnly,
+    points,
+    selectedClassificationIds,
+    selectedSpeciesIds,
+    selectedTagIds,
+    visibleSpeciesOptions,
+    visibleTagOptions,
+  ]);
 
   const sortedPoints = useMemo(() => {
     return [...filteredPoints]
@@ -502,6 +608,107 @@ export function MapDashboard({
         : "Trocar grupo";
   const mobileGroupSwitcherLabel =
     groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
+  const hasClassificationRestriction =
+    selectedClassificationIds.length !== activeClassificationIds.length ||
+    activeClassificationIds.some(
+      (classificationId) => !selectedClassificationIds.includes(classificationId),
+    );
+  const hasTagRestriction =
+    visibleTagOptions.length > 0 && selectedTagIds.length < visibleTagOptions.length;
+  const hasSpeciesRestriction =
+    visibleSpeciesOptions.length > 0 && selectedSpeciesIds.length < visibleSpeciesOptions.length;
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (hasClassificationRestriction) {
+      labels.push(
+        selectedClassificationIds.length
+          ? `${selectedClassificationIds.length} classificacoes`
+          : "Nenhuma classificacao",
+      );
+    }
+
+    if (hasSpeciesRestriction) {
+      labels.push(
+        selectedSpeciesIds.length
+          ? `${selectedSpeciesIds.length} especies`
+          : "Nenhuma especie",
+      );
+    }
+
+    if (hasTagRestriction) {
+      labels.push(selectedTagIds.length ? `${selectedTagIds.length} tags` : "Nenhuma tag");
+    }
+
+    if (pendingOnly) {
+      labels.push("Somente pendentes");
+    }
+
+    return labels;
+  }, [
+    hasClassificationRestriction,
+    hasSpeciesRestriction,
+    hasTagRestriction,
+    pendingOnly,
+    selectedClassificationIds.length,
+    selectedSpeciesIds.length,
+    selectedTagIds.length,
+  ]);
+
+  function toggleClassificationFilter(classificationId: string) {
+    setSelectedClassificationIds((current) =>
+      current.includes(classificationId)
+        ? current.filter((currentId) => currentId !== classificationId)
+        : [...current, classificationId],
+    );
+  }
+
+  function toggleTagFilter(tagId: string) {
+    setSelectedTagIds((current) =>
+      current.includes(tagId)
+        ? current.filter((currentId) => currentId !== tagId)
+        : [...current, tagId],
+    );
+  }
+
+  function selectAllClassifications() {
+    setSelectedClassificationIds(activeClassificationIds);
+  }
+
+  function clearClassificationSelection() {
+    setSelectedClassificationIds([]);
+  }
+
+  function toggleSpeciesFilter(speciesId: string) {
+    setSelectedSpeciesIds((current) =>
+      current.includes(speciesId)
+        ? current.filter((currentId) => currentId !== speciesId)
+        : [...current, speciesId],
+    );
+  }
+
+  function selectAllSpecies() {
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+  }
+
+  function clearSpeciesSelection() {
+    setSelectedSpeciesIds([]);
+  }
+
+  function selectAllTags() {
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+  }
+
+  function clearTagSelection() {
+    setSelectedTagIds([]);
+  }
+
+  function clearMapFilters() {
+    setSelectedClassificationIds(activeClassificationIds);
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+    setPendingOnly(false);
+  }
 
   useEffect(() => {
     if (page !== safePage) {
@@ -549,7 +756,7 @@ export function MapDashboard({
                 </button>
                 <button
                   className="button-ghost compact map-mobile-tools-toggle"
-                  onClick={() => setIsMobileFiltersOpen(true)}
+                  onClick={() => setIsFiltersOpen(true)}
                   type="button"
                 >
                   <Filter aria-hidden="true" size={15} />
@@ -561,7 +768,7 @@ export function MapDashboard({
               <div className="map-group-switch-row">
                 <button
                   className="button-ghost compact map-mobile-tools-toggle"
-                  onClick={() => setIsMobileFiltersOpen(true)}
+                  onClick={() => setIsFiltersOpen(true)}
                   type="button"
                 >
                   <Filter aria-hidden="true" size={15} />
@@ -571,38 +778,6 @@ export function MapDashboard({
               </div>
             )}
           </div>
-        </div>
-
-        <div className="map-controls-bar compact">
-          <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
-          <form className="map-search-form toolbar-field" onSubmit={handleAddressSearch}>
-            <label className="toolbar-label" htmlFor="map-address-search">
-              <Search aria-hidden="true" size={15} />
-              <span>Buscar endereco</span>
-            </label>
-            <div className="map-search-row">
-              <input
-                id="map-address-search"
-                onChange={(event) => setAddressQuery(event.target.value)}
-                placeholder="Rua, bairro, numero ou referencia"
-                value={addressQuery}
-              />
-              <button className="button-ghost" disabled={isSearchingAddress} type="submit">
-                <Search aria-hidden="true" size={15} />
-                {isSearchingAddress ? "Buscando..." : "Localizar"}
-              </button>
-            </div>
-          </form>
-          {canReviewInCurrentScope ? (
-            <label className="inline-toggle">
-              <input
-                checked={pendingOnly}
-                onChange={(event) => setPendingOnly(event.target.checked)}
-                type="checkbox"
-              />
-              <span>Exibir somente pontos pendentes</span>
-            </label>
-          ) : null}
         </div>
 
         {canCreatePoints ? (
@@ -634,6 +809,33 @@ export function MapDashboard({
           </button>
         </div>
       </section>
+
+      {activeFilterLabels.length ? (
+        <section className="panel filter-summary-bar">
+          <div className="stack-xs">
+            <strong>Filtros ativos no mapa</strong>
+            <div className="filter-summary-badges">
+              {activeFilterLabels.map((label) => (
+                <span className="badge" key={label}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="button-row filter-summary-actions">
+            <button
+              className="button-ghost compact"
+              onClick={() => setIsFiltersOpen(true)}
+              type="button"
+            >
+              Ver filtros
+            </button>
+            <button className="button-ghost compact danger" onClick={clearMapFilters} type="button">
+              Limpar filtros
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
@@ -710,6 +912,11 @@ export function MapDashboard({
                       <span className="muted">{point.species_name}</span>
                     ) : null}
                   </div>
+                  <PointTagBadges
+                    className="point-tag-list point-tag-list-compact"
+                    limit={3}
+                    tags={point.tags}
+                  />
                 </div>
                 <div className="point-line-metric">
                   <span className="muted">Distancia</span>
@@ -838,19 +1045,21 @@ export function MapDashboard({
         </div>
       ) : null}
 
-      {isMobileFiltersOpen ? (
+      {isFiltersOpen ? (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card modal-card-compact stack-md">
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">
                   <h2 className="section-title">Filtros e busca</h2>
-                  <p className="subtitle">Ajuste a classificacao e localize um endereco no mapa.</p>
+                  <p className="subtitle">
+                    Escolha uma ou mais classificacoes, refine por tags e localize um endereco no mapa.
+                  </p>
                 </div>
                 <button
                   aria-label="Fechar janela"
                   className="modal-close-button"
-                  onClick={() => setIsMobileFiltersOpen(false)}
+                  onClick={() => setIsFiltersOpen(false)}
                   type="button"
                 >
                   <X aria-hidden="true" size={18} />
@@ -859,7 +1068,129 @@ export function MapDashboard({
             </div>
 
             <div className="stack-md">
-              <PointFilters classifications={classifications} value={filter} onChange={setFilter} />
+              <div className="stack-sm">
+                <div className="panel-header">
+                  <div className="stack-xs">
+                    <strong>Classificacoes</strong>
+                    <span className="muted">
+                      Os pontos do mapa respeitam todas as classificacoes marcadas abaixo.
+                    </span>
+                  </div>
+                  <div className="button-row">
+                    <button className="button-ghost" onClick={selectAllClassifications} type="button">
+                      Marcar todas
+                    </button>
+                    <button className="button-ghost" onClick={clearClassificationSelection} type="button">
+                      Desmarcar todas
+                    </button>
+                  </div>
+                </div>
+
+                <div className="map-filter-grid">
+                  {classifications.map((classification) => (
+                    <label className="inline-toggle map-filter-option" key={classification.id}>
+                      <input
+                        checked={selectedClassificationIds.includes(classification.id)}
+                        onChange={() => toggleClassificationFilter(classification.id)}
+                        type="checkbox"
+                      />
+                      <span>{classification.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="stack-sm">
+                <div className="panel-header">
+                  <div className="stack-xs">
+                    <strong>Especies</strong>
+                    <span className="muted">
+                      O filtro por especie afeta apenas os pontos das classificacoes que usam especies.
+                    </span>
+                  </div>
+                  {visibleSpeciesOptions.length ? (
+                    <div className="button-row">
+                      <button className="button-ghost" onClick={selectAllSpecies} type="button">
+                        Marcar todas
+                      </button>
+                      <button className="button-ghost" onClick={clearSpeciesSelection} type="button">
+                        Desmarcar todas
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {selectedClassificationIds.length ? (
+                  visibleSpeciesOptions.length ? (
+                    <div className="map-filter-grid">
+                      {visibleSpeciesOptions.map((species) => (
+                        <label className="inline-toggle map-filter-option" key={species.id}>
+                          <input
+                            checked={selectedSpeciesIds.includes(species.id)}
+                            onChange={() => toggleSpeciesFilter(species.id)}
+                            type="checkbox"
+                          />
+                          <span>{species.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">
+                      Nenhuma especie encontrada nas classificacoes selecionadas.
+                    </span>
+                  )
+                ) : (
+                  <span className="muted">
+                    Marque pelo menos uma classificacao para exibir as especies relacionadas.
+                  </span>
+                )}
+              </div>
+
+              <div className="stack-sm">
+                <div className="panel-header">
+                  <div className="stack-xs">
+                    <strong>Tags</strong>
+                    <span className="muted">
+                      As tags acompanham as classificacoes marcadas. Se todas estiverem marcadas, o mapa nao restringe por tags.
+                    </span>
+                  </div>
+                  {visibleTagOptions.length ? (
+                    <div className="button-row">
+                      <button className="button-ghost" onClick={selectAllTags} type="button">
+                        Marcar todas
+                      </button>
+                      <button className="button-ghost" onClick={clearTagSelection} type="button">
+                        Desmarcar todas
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                {selectedClassificationIds.length ? (
+                  visibleTagOptions.length ? (
+                    <div className="map-filter-grid">
+                      {visibleTagOptions.map((tag) => (
+                        <label className="inline-toggle map-filter-option" key={tag.id}>
+                          <input
+                            checked={selectedTagIds.includes(tag.id)}
+                            onChange={() => toggleTagFilter(tag.id)}
+                            type="checkbox"
+                          />
+                          <span>{tag.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">
+                      Nenhuma tag cadastrada para as classificacoes selecionadas.
+                    </span>
+                  )
+                ) : (
+                  <span className="muted">
+                    Marque pelo menos uma classificacao para exibir as tags relacionadas.
+                  </span>
+                )}
+              </div>
+
               <form className="map-search-form" onSubmit={handleAddressSearch}>
                 <label className="toolbar-label" htmlFor="map-address-search-mobile">
                   <Search aria-hidden="true" size={15} />

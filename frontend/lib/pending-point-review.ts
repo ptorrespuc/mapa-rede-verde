@@ -3,7 +3,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { loadPointClassifications } from "@/lib/point-classifications";
-import { getPendingPointMediaDescriptors } from "@/lib/pending-point-updates";
+import { loadPointTags } from "@/lib/point-tags";
+import {
+  hasPendingTagIds,
+  getPendingPointMediaDescriptors,
+  getPendingTagIds,
+} from "@/lib/pending-point-updates";
 import { hydratePointMediaRows, listPointMediaRows } from "@/lib/point-timeline";
 import type {
   PendingPointReviewChange,
@@ -23,10 +28,15 @@ export async function loadPendingPointReviewSummary(
     return null;
   }
 
-  const [{ data: classifications }, { data: speciesCatalog }, mediaRows] = await Promise.all([
+  const [{ data: classifications }, { data: speciesCatalog }, { data: pointTags }, mediaRows] =
+    await Promise.all([
     loadPointClassifications(supabase, true),
     supabase.rpc("list_species", {
       p_only_active: false,
+    }),
+    loadPointTags(supabase, {
+      pointClassificationId: null,
+      onlyActive: false,
     }),
     listPointMediaRows(supabase, point.id),
   ]);
@@ -37,12 +47,18 @@ export async function loadPendingPointReviewSummary(
   const speciesMap = new Map(
     ((speciesCatalog ?? []) as SpeciesRecord[]).map((species) => [species.id, species.display_name]),
   );
+  const pointTagMap = new Map((pointTags ?? []).map((tag) => [tag.id, tag.name]));
 
   const currentMedia = await hydratePointMediaRows(mediaRows.filter((media) => !media.point_event_id));
   const pendingMedia = await buildPendingMedia(point);
   const pendingMediaMode = resolvePendingMediaMode(point, pendingMedia.length > 0);
   const currentSnapshot = buildCurrentSnapshot(point);
-  const proposedSnapshot = buildProposedSnapshot(point, classificationMap, speciesMap);
+  const proposedSnapshot = buildProposedSnapshot(
+    point,
+    classificationMap,
+    speciesMap,
+    pointTagMap,
+  );
   const changes = buildChanges(currentSnapshot, proposedSnapshot);
   const resultingMedia = buildResultingMedia(currentMedia, pendingMedia, pendingMediaMode);
 
@@ -95,6 +111,9 @@ function buildCurrentSnapshot(point: PointDetailRecord): PendingPointReviewSnaps
     classificationName: point.classification_name,
     title: point.title,
     speciesName: point.species_name,
+    tagNames: (point.tags ?? [])
+      .map((tag) => tag.name)
+      .sort((a, b) => a.localeCompare(b, "pt-BR")),
     description: point.description,
     latitude: point.latitude,
     longitude: point.longitude,
@@ -106,6 +125,7 @@ function buildProposedSnapshot(
   point: PointDetailRecord,
   classificationMap: Map<string, string>,
   speciesMap: Map<string, string>,
+  pointTagMap: Map<string, string>,
 ): PendingPointReviewSnapshot {
   const pendingData = point.pending_update_data ?? {};
   const hasDescription = Object.prototype.hasOwnProperty.call(pendingData, "description");
@@ -125,6 +145,8 @@ function buildProposedSnapshot(
     typeof pendingData.latitude === "number" ? pendingData.latitude : point.latitude;
   const nextLongitude =
     typeof pendingData.longitude === "number" ? pendingData.longitude : point.longitude;
+  const pendingTagIds = getPendingTagIds(point.pending_update_data);
+  const hasPendingTagSelection = hasPendingTagIds(point.pending_update_data);
 
   return {
     groupName:
@@ -140,6 +162,14 @@ function buildProposedSnapshot(
         ? speciesMap.get(nextSpeciesId) ?? point.species_name
         : null
       : point.species_name,
+    tagNames: hasPendingTagSelection
+      ? pendingTagIds
+          .map((tagId) => pointTagMap.get(tagId))
+          .filter((tagName): tagName is string => Boolean(tagName))
+          .sort((a, b) => a.localeCompare(b, "pt-BR"))
+      : (point.tags ?? [])
+          .map((tag) => tag.name)
+          .sort((a, b) => a.localeCompare(b, "pt-BR")),
     description: nextDescription,
     latitude: nextLatitude,
     longitude: nextLongitude,
@@ -164,6 +194,13 @@ function buildChanges(
     "Especie",
     current.speciesName ?? "Sem especie",
     proposed.speciesName ?? "Sem especie",
+  );
+  maybePushChange(
+    changes,
+    "tags",
+    "Tags",
+    current.tagNames.length ? current.tagNames.join(", ") : "Sem tags",
+    proposed.tagNames.length ? proposed.tagNames.join(", ") : "Sem tags",
   );
   maybePushChange(
     changes,

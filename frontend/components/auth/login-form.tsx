@@ -23,6 +23,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [registerErrorMessage, setRegisterErrorMessage] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
 
@@ -124,6 +125,14 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
         throw new Error("O cadastro publico esta indisponivel no momento.");
       }
 
+      if (registerPassword.trim().length < 8) {
+        throw new Error("A senha precisa ter pelo menos 8 caracteres.");
+      }
+
+      if (registerPassword !== registerConfirmPassword) {
+        throw new Error("A confirmacao da senha precisa ser igual a senha informada.");
+      }
+
       const supabase = createBrowserSupabaseClient();
       const emailRedirectTo =
         typeof window !== "undefined" ? `${window.location.origin}/login` : undefined;
@@ -151,6 +160,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
       setRegisterName("");
       setRegisterEmail("");
       setRegisterPassword("");
+      setRegisterConfirmPassword("");
       setInfoMessage(
         "Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faca o login.",
       );
@@ -305,6 +315,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
               <div className="field">
                 <label htmlFor="register-password">Senha</label>
                 <input
+                  autoComplete="new-password"
                   id="register-password"
                   minLength={8}
                   onChange={(event) => setRegisterPassword(event.target.value)}
@@ -313,6 +324,19 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
                   value={registerPassword}
                 />
               </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="register-confirm-password">Repetir senha</label>
+              <input
+                autoComplete="new-password"
+                id="register-confirm-password"
+                minLength={8}
+                onChange={(event) => setRegisterConfirmPassword(event.target.value)}
+                required
+                type="password"
+                value={registerConfirmPassword}
+              />
             </div>
 
             {registerErrorMessage ? <p className="error">{registerErrorMessage}</p> : null}

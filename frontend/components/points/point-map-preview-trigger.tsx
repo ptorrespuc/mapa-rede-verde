@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Eye, MapPinned, X } from "lucide-react";
 
+import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { loadGoogleMapsLibraries } from "@/lib/google-maps";
 import { getPointDisplayColor } from "@/lib/point-display";
 import type { PointRecord } from "@/types/domain";
@@ -16,6 +17,7 @@ type PointMapPreviewPoint = Pick<
   | "classification_name"
   | "classification_requires_species"
   | "species_name"
+  | "tags"
   | "latitude"
   | "longitude"
   | "approval_status"
@@ -174,6 +176,7 @@ export function PointMapPreviewTrigger({
                 {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
               </span>
             </div>
+            <PointTagBadges className="point-tag-list point-tag-list-compact" limit={3} tags={point.tags} />
 
             <div className="point-map-preview-shell">
               <div className="point-map-preview-canvas" ref={mapContainerRef} />

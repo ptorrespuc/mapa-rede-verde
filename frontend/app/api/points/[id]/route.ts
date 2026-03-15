@@ -74,6 +74,7 @@ export async function PATCH(
     const point = await updatePointWithPendingMedia({
       pointId: id,
       parsed,
+      actorAuthUserId,
       supabase,
     });
 

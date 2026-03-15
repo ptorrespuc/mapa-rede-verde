@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+  <body style="margin:0;background:#f4f6ef;font-family:Arial,sans-serif;color:#17312d;">
+    <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+      <div style="background:#ffffff;border-radius:20px;padding:32px;border:1px solid #d8e1d6;">
+        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#4d695d;">
+          Mapa Rede Verde
+        </p>
+        <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#17312d;">
+          Confirme seu cadastro
+        </h1>
+        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+          Ola,
+        </p>
+        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+          recebemos um pedido para criar uma conta no <strong>Mapa Rede Verde</strong>.
+          Para concluir o cadastro e liberar o acesso, confirme seu e-mail no botao abaixo.
+        </p>
+        <p style="margin:24px 0;">
+          <a
+            href="{{ .ConfirmationURL }}"
+            style="display:inline-block;background:#1f6b4f;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:bold;"
+          >
+            Confirmar cadastro
+          </a>
+        </p>
+        <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4d695d;">
+          Se voce nao solicitou este cadastro, pode ignorar esta mensagem com seguranca.
+        </p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6a7f75;">
+          Caso o botao nao funcione, copie e cole este link no navegador:
+          <br />
+          <a href="{{ .ConfirmationURL }}" style="color:#1f6b4f;word-break:break-all;">
+            {{ .ConfirmationURL }}
+          </a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

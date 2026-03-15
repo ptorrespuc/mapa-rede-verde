@@ -12,8 +12,10 @@ import {
   type PointMediaUploadInput,
 } from "@/lib/point-media";
 import {
+  hasPendingTagIds,
   getPendingPointMediaDescriptors,
   getPendingPointMediaMode,
+  getPendingTagIds,
   mergePendingUpdateMetadata,
 } from "@/lib/pending-point-updates";
 import {
@@ -23,15 +25,22 @@ import {
 import { ApiRouteError } from "@/lib/server/api-route";
 import {
   fromPostgrestError,
+  loadActorProfileIdOrThrow,
   loadPointDetailOrThrow,
   type ServerSupabaseClient,
 } from "@/lib/server/point-service-shared";
+import {
+  replacePointTagAssignments,
+  validatePointTagSelection,
+} from "@/lib/server/point-tag-service";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { PointDetailRecord, PointPhotoUpdateMode, PointRecord } from "@/types/domain";
 
 export interface ParsedPointPatch {
   groupId?: string | null;
   classificationId?: string | null;
+  tagIds: string[];
+  tagIdsProvided: boolean;
   title?: string | null;
   description?: string | null;
   longitude?: number | null;
@@ -63,9 +72,10 @@ export async function parsePointPatchRequest(request: Request): Promise<ParsedPo
 export async function updatePointWithPendingMedia(options: {
   pointId: string;
   parsed: ParsedPointPatch;
+  actorAuthUserId: string;
   supabase: ServerSupabaseClient;
 }) {
-  const { pointId, parsed, supabase } = options;
+  const { pointId, parsed, actorAuthUserId, supabase } = options;
   const existingPoint = await loadPointDetailOrThrow(supabase, pointId);
   const requestedClassificationId =
     parsed.classificationId && parsed.classificationId.trim()
@@ -75,6 +85,16 @@ export async function updatePointWithPendingMedia(options: {
     parsed.groupId && parsed.groupId.trim() ? parsed.groupId : existingPoint.group_id;
   const isGroupChange = requestedGroupId !== existingPoint.group_id;
   const isReclassificationChange = requestedClassificationId !== existingPoint.classification_id;
+  const requestedTagIds = parsed.tagIdsProvided
+    ? await validatePointTagSelection({
+        supabase,
+        classificationId: requestedClassificationId,
+        tagIds: parsed.tagIds,
+      })
+    : isReclassificationChange
+      ? []
+      : (existingPoint.tags ?? []).map((tag) => tag.id);
+  const shouldSyncTagAssignments = parsed.tagIdsProvided || isReclassificationChange;
   const shouldPreservePreviousState =
     isReclassificationChange && parsed.preservePreviousStateOnReclassification === true;
   const existingPendingPointMedia = getPendingPointMediaDescriptors(existingPoint.pending_update_data);
@@ -152,7 +172,10 @@ export async function updatePointWithPendingMedia(options: {
       existingPendingPointMedia,
       existingPendingPointMediaMode,
       nextPointMediaMode,
+      requestedTagIds,
+      shouldSyncTagAssignments,
       shouldPreservePreviousState,
+      actorAuthUserId,
       supabase,
     });
   } catch (error) {
@@ -177,7 +200,10 @@ async function finalizePointUpdate(options: {
   existingPendingPointMedia: Awaited<ReturnType<typeof getPendingPointMediaDescriptors>>;
   existingPendingPointMediaMode: ReturnType<typeof getPendingPointMediaMode>;
   nextPointMediaMode: PointPhotoUpdateMode;
+  requestedTagIds: string[];
+  shouldSyncTagAssignments: boolean;
   shouldPreservePreviousState: boolean;
+  actorAuthUserId: string;
   supabase: ServerSupabaseClient;
 }) {
   const {
@@ -189,7 +215,10 @@ async function finalizePointUpdate(options: {
     existingPendingPointMedia,
     existingPendingPointMediaMode,
     nextPointMediaMode,
+    requestedTagIds,
+    shouldSyncTagAssignments,
     shouldPreservePreviousState,
+    actorAuthUserId,
     supabase,
   } = options;
   const hasPendingChangeRequest =
@@ -205,6 +234,8 @@ async function finalizePointUpdate(options: {
       existingPendingPointMedia,
       existingPendingPointMediaMode,
       nextPointMediaMode,
+      requestedTagIds,
+      shouldSyncTagAssignments,
       shouldPreservePreviousState,
       supabase,
     });
@@ -241,7 +272,18 @@ async function finalizePointUpdate(options: {
     }
   }
 
-  return updatedPoint;
+  if (shouldSyncTagAssignments) {
+    const adminSupabase = createAdminSupabaseClient();
+    const actorProfileId = await loadActorProfileIdOrThrow(adminSupabase, actorAuthUserId);
+    await replacePointTagAssignments({
+      adminSupabase,
+      pointId,
+      tagIds: requestedTagIds,
+      createdBy: actorProfileId,
+    });
+  }
+
+  return loadPointDetailOrThrow(supabase, pointId);
 }
 
 async function persistPendingPointUpdate(options: {
@@ -251,6 +293,8 @@ async function persistPendingPointUpdate(options: {
   existingPendingPointMedia: Awaited<ReturnType<typeof getPendingPointMediaDescriptors>>;
   existingPendingPointMediaMode: ReturnType<typeof getPendingPointMediaMode>;
   nextPointMediaMode: PointPhotoUpdateMode;
+  requestedTagIds: string[];
+  shouldSyncTagAssignments: boolean;
   shouldPreservePreviousState: boolean;
   supabase: ServerSupabaseClient;
 }) {
@@ -261,6 +305,8 @@ async function persistPendingPointUpdate(options: {
     existingPendingPointMedia,
     existingPendingPointMediaMode,
     nextPointMediaMode,
+    requestedTagIds,
+    shouldSyncTagAssignments,
     shouldPreservePreviousState,
     supabase,
   } = options;
@@ -277,6 +323,11 @@ async function persistPendingPointUpdate(options: {
     pendingPointMediaMode: parsed.photos.length
       ? nextPointMediaMode
       : existingPendingPointMediaMode,
+    pendingTagIds: shouldSyncTagAssignments
+      ? requestedTagIds
+      : hasPendingTagIds(updatedPoint.pending_update_data)
+        ? getPendingTagIds(updatedPoint.pending_update_data)
+        : undefined,
   });
 
   const { error: pendingUpdateError } = await adminSupabase
@@ -310,22 +361,28 @@ async function parseJsonPointPatch(request: Request): Promise<ParsedPointPatch> 
     throw new Error("Payload de atualizacao invalido.");
   }
 
+  const payload = body as Record<string, unknown>;
+
   return {
-    groupId: typeof body.groupId === "string" ? body.groupId || null : null,
+    groupId: typeof payload.groupId === "string" ? payload.groupId || null : null,
     classificationId:
-      typeof body.classificationId === "string" ? body.classificationId || null : null,
-    title: typeof body.title === "string" ? body.title : null,
-    description: typeof body.description === "string" ? body.description : null,
-    longitude: typeof body.longitude === "number" ? body.longitude : null,
-    latitude: typeof body.latitude === "number" ? body.latitude : null,
-    isPublic: typeof body.isPublic === "boolean" ? body.isPublic : null,
-    speciesId: typeof body.speciesId === "string" ? body.speciesId || null : null,
-    speciesIdProvided: Object.prototype.hasOwnProperty.call(body, "speciesId"),
+      typeof payload.classificationId === "string" ? payload.classificationId || null : null,
+    tagIds: Array.isArray(payload.tagIds)
+      ? payload.tagIds.filter((tagId): tagId is string => typeof tagId === "string")
+      : [],
+    tagIdsProvided: Object.prototype.hasOwnProperty.call(payload, "tagIds"),
+    title: typeof payload.title === "string" ? payload.title : null,
+    description: typeof payload.description === "string" ? payload.description : null,
+    longitude: typeof payload.longitude === "number" ? payload.longitude : null,
+    latitude: typeof payload.latitude === "number" ? payload.latitude : null,
+    isPublic: typeof payload.isPublic === "boolean" ? payload.isPublic : null,
+    speciesId: typeof payload.speciesId === "string" ? payload.speciesId || null : null,
+    speciesIdProvided: Object.prototype.hasOwnProperty.call(payload, "speciesId"),
     photos: [],
-    photoUpdateMode: body.photoUpdateMode === "append" ? "append" : "replace",
+    photoUpdateMode: payload.photoUpdateMode === "append" ? "append" : "replace",
     preservePreviousStateOnReclassification:
-      typeof body.preservePreviousStateOnReclassification === "boolean"
-        ? body.preservePreviousStateOnReclassification
+      typeof payload.preservePreviousStateOnReclassification === "boolean"
+        ? payload.preservePreviousStateOnReclassification
         : undefined,
   };
 }
@@ -342,6 +399,13 @@ async function parseMultipartPointPatch(request: Request): Promise<ParsedPointPa
   return {
     groupId: normalizeNullableString(formData.get("groupId")),
     classificationId: normalizeNullableString(formData.get("classificationId")),
+    tagIds: formData
+      .getAll("tagIds")
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+    tagIdsProvided:
+      formData.get("tagIdsProvided") === "true" || formData.getAll("tagIds").length > 0,
     title: normalizeNullableString(formData.get("title")),
     description: normalizeNullableString(formData.get("description")),
     longitude: normalizeNullableNumber(formData.get("longitude")),

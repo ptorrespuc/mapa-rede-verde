@@ -37,7 +37,18 @@ export async function POST(request: Request) {
   const admin = createAdminSupabaseClient();
   const email = String(body.email).trim().toLowerCase();
   const name = String(body.name).trim();
+  const preferredGroupId =
+    typeof body.preferredGroupId === "string" && body.preferredGroupId.trim()
+      ? body.preferredGroupId.trim()
+      : body.groupId;
   const redirectTo = new URL("/login", request.url).toString();
+
+  if (preferredGroupId !== body.groupId) {
+    return NextResponse.json(
+      { error: "O grupo preferencial inicial precisa ser o mesmo grupo vinculado no cadastro." },
+      { status: 400 },
+    );
+  }
 
   const { data: createdUser, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
@@ -62,6 +73,7 @@ export async function POST(request: Request) {
         auth_user_id: authUser.id,
         name,
         email,
+        preferred_group_id: preferredGroupId,
       },
       {
         onConflict: "auth_user_id",
@@ -99,6 +111,7 @@ export async function POST(request: Request) {
       email,
       inviteSent: true,
       groupId: body.groupId,
+      preferredGroupId,
       role: body.role,
       redirectTo,
     },

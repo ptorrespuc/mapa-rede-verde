@@ -1,0 +1,12 @@
+.git
+.vercel
+backend
+mobile
+frontend/.next
+frontend/.next-backup-*
+frontend/node_modules
+frontend/playwright-report
+frontend/test-results
+frontend-backup-*
+*.zip
+chave.txt
