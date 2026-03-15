@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint --ext .js --ext .jsx --ext .ts --ext .tsx .",
     "android:add": "npx cap add android",
+    "android:icons": "python scripts/generate_android_icons.py",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
     "android:run": "npx cap run android",

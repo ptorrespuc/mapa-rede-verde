@@ -55,6 +55,8 @@ Dentro de `frontend/`:
 
 ```bash
 npx cap add android
+npx cap run android
+npm run android:icons
 npx cap sync android
 npx cap open android
 ```
@@ -63,4 +65,6 @@ npx cap open android
 
 - o shell usa `server.url` para apontar para a aplicacao publicada
 - `mobile-shell/` existe apenas como base local minima para o Capacitor
+- o icone fonte do app fica em `frontend/android/icon-source/app-icon.svg`
+- para regenerar os assets Android e o PNG de 512x512 para a Play Store, rode `npm run android:icons`
 - se no futuro o projeto precisar de recursos nativos mais fortes, da para adicionar plugins sem abandonar a base web atual
