@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { PointForm } from "@/components/points/point-form";
 import { apiClient } from "@/lib/api-client";
+import { storeFlashFeedback } from "@/lib/flash-feedback";
 import type {
   CreatePointPayload,
   GroupRecord,
@@ -36,6 +37,17 @@ export function NewPointPage({
 
     try {
       const point = await apiClient.createPoint(payload);
+      storeFlashFeedback({
+        scope: `/points/${point.id}`,
+        title:
+          point.approval_status === "pending"
+            ? "Ponto enviado para aprovacao"
+            : "Ponto criado com sucesso",
+        message:
+          point.approval_status === "pending"
+            ? "Aguarde a revisao do grupo para que o registro fique disponivel para todos os perfis com acesso."
+            : "O ponto foi salvo e ja pode ser consultado no detalhe completo.",
+      });
       toast.success(
         point.approval_status === "pending"
           ? "Ponto enviado para aprovacao."

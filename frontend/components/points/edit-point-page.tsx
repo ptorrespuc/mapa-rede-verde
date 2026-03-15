@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DeletePointButton } from "@/components/points/delete-point-button";
 import { PointForm } from "@/components/points/point-form";
 import { apiClient } from "@/lib/api-client";
+import { storeFlashFeedback } from "@/lib/flash-feedback";
 import type {
   CreatePointPayload,
   GroupRecord,
@@ -54,6 +55,17 @@ export function EditPointPage({
         photoUpdateMode: payload.photoUpdateMode,
         preservePreviousStateOnReclassification:
           payload.preservePreviousStateOnReclassification,
+      });
+      storeFlashFeedback({
+        scope: `/points/${point.id}`,
+        title:
+          updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"
+            ? "Alteracao enviada para aprovacao"
+            : "Ponto atualizado com sucesso",
+        message:
+          updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"
+            ? "A solicitacao foi registrada e agora aguarda a revisao do grupo."
+            : "Os dados do ponto ja refletem a atualizacao enviada.",
       });
       toast.success(
         updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"

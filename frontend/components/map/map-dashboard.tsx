@@ -23,8 +23,11 @@ import { MapCanvas, type MapCanvasHandle } from "@/components/map/map-canvas";
 import { PointCreationModal } from "@/components/points/point-creation-modal";
 import { PointQuickViewModal } from "@/components/points/point-quick-view-modal";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { apiClient } from "@/lib/api-client";
+import type { FlashFeedbackPayload } from "@/lib/flash-feedback";
 import { getPointDisplayColor, isPointPendingForReview } from "@/lib/point-display";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import {
   type CreatePointPayload,
   type GroupRecord,
@@ -135,6 +138,7 @@ export function MapDashboard({
   );
   const [groupFilter, setGroupFilter] = useState<string>(initialSelectedGroup?.id ?? "all");
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [mineOnly, setMineOnly] = useState(false);
   const [isGroupSelectionImplicit, setIsGroupSelectionImplicit] = useState(
     initialGroupSelectionWasImplicit,
   );
@@ -144,6 +148,7 @@ export function MapDashboard({
   const [selectedSpeciesIds, setSelectedSpeciesIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FlashFeedbackPayload | null>(null);
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [addressQuery, setAddressQuery] = useState("");
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
@@ -157,6 +162,14 @@ export function MapDashboard({
     classificationId: classifications[0]?.id ?? "",
   });
   const hasHydrated = useRef(false);
+  const groupPickerModalRef = useModalAccessibility<HTMLDivElement>(
+    isGroupPickerOpen,
+    () => setIsGroupPickerOpen(false),
+  );
+  const filtersModalRef = useModalAccessibility<HTMLDivElement>(
+    isFiltersOpen,
+    () => setIsFiltersOpen(false),
+  );
   const selectedVisibleGroup = visibleGroups.find((group) => group.id === groupFilter) ?? null;
   const currentGroupSummary =
     selectedVisibleGroup ?? (visibleGroups.length === 1 ? visibleGroups[0] : null);
@@ -262,6 +275,7 @@ export function MapDashboard({
     setPage(1);
   }, [
     groupFilter,
+    mineOnly,
     pendingOnly,
     points.length,
     selectedClassificationIds,
@@ -339,6 +353,18 @@ export function MapDashboard({
       setFocusedPointId(nextPoint.id);
       setQuickViewPoint(nextPoint);
       setIsModalOpen(false);
+      setFeedback({
+        title:
+          createdPoint.approval_status === "pending"
+            ? "Ponto enviado para aprovacao"
+            : "Ponto criado com sucesso",
+        message:
+          createdPoint.approval_status === "pending"
+            ? "O registro ja pode ser acompanhado por voce e pelos aprovadores do grupo."
+            : "O novo ponto ja aparece no mapa com os dados salvos.",
+        actionHref: `/points/${nextPoint.id}`,
+        actionLabel: "Abrir detalhe",
+      });
       toast.success(
         createdPoint.approval_status === "pending"
           ? "Ponto enviado para aprovacao."
@@ -357,12 +383,29 @@ export function MapDashboard({
       const updatedPoint = await apiClient.reviewPoint(point.id, action);
       const nextPoints = await refreshPoints(groupFilter);
       const nextPoint = nextPoints.find((item) => item.id === updatedPoint.id) ?? null;
-      const shouldKeepVisible = nextPoint && (!pendingOnly || isPointPendingForReview(nextPoint));
+      const shouldKeepVisible =
+        nextPoint &&
+        (!pendingOnly || isPointPendingForReview(nextPoint)) &&
+        (!mineOnly || nextPoint.viewer_is_creator);
 
       setQuickViewPoint(shouldKeepVisible ? nextPoint : null);
       setFocusedPointId((current) =>
         shouldKeepVisible ? current : current === point.id ? null : current,
       );
+      setFeedback({
+        title:
+          action === "approve"
+            ? point.has_pending_update
+              ? "Alteracao aprovada"
+              : "Ponto aprovado"
+            : "Ponto rejeitado",
+        message:
+          action === "approve"
+            ? "A listagem e o mapa ja refletem a decisao tomada."
+            : "O ponto continua disponivel apenas para os perfis com acesso de revisao.",
+        actionHref: `/points/${point.id}`,
+        actionLabel: "Abrir detalhe",
+      });
 
       toast.success(
         action === "approve"
@@ -382,6 +425,10 @@ export function MapDashboard({
       await refreshPoints(groupFilter);
       setQuickViewPoint(null);
       setFocusedPointId((current) => (current === point.id ? null : current));
+      setFeedback({
+        title: "Ponto arquivado",
+        message: "O registro saiu das listagens operacionais, mas o historico foi preservado.",
+      });
       toast.success("Ponto arquivado com sucesso.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel arquivar o ponto.");
@@ -525,6 +572,10 @@ export function MapDashboard({
         return false;
       }
 
+      if (mineOnly && !point.viewer_is_creator) {
+        return false;
+      }
+
       if (!selectedClassificationIds.includes(point.classification_id)) {
         return false;
       }
@@ -552,6 +603,7 @@ export function MapDashboard({
       return selectedTagIds.some((tagId) => pointTagIds.includes(tagId));
     });
   }, [
+    mineOnly,
     pendingOnly,
     points,
     selectedClassificationIds,
@@ -644,11 +696,16 @@ export function MapDashboard({
       labels.push("Somente pendentes");
     }
 
+    if (mineOnly) {
+      labels.push("Meus pontos");
+    }
+
     return labels;
   }, [
     hasClassificationRestriction,
     hasSpeciesRestriction,
     hasTagRestriction,
+    mineOnly,
     pendingOnly,
     selectedClassificationIds.length,
     selectedSpeciesIds.length,
@@ -707,8 +764,29 @@ export function MapDashboard({
     setSelectedClassificationIds(activeClassificationIds);
     setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
     setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+    setMineOnly(false);
     setPendingOnly(false);
   }
+
+  const classificationQuickLabel = useMemo(() => {
+    if (!selectedClassificationIds.length) {
+      return "Nenhuma classificacao";
+    }
+
+    if (selectedClassificationIds.length === activeClassificationIds.length) {
+      return "Todas as classificacoes";
+    }
+
+    if (selectedClassificationIds.length === 1) {
+      return (
+        classifications.find((classification) => classification.id === selectedClassificationIds[0])
+          ?.name ?? "1 classificacao"
+      );
+    }
+
+    return `${selectedClassificationIds.length} classificacoes`;
+  }, [activeClassificationIds.length, classifications, selectedClassificationIds]);
+  const hasAdvancedFiltersActive = hasSpeciesRestriction || hasTagRestriction;
 
   useEffect(() => {
     if (page !== safePage) {
@@ -783,7 +861,7 @@ export function MapDashboard({
         {canCreatePoints ? (
           <div className="map-creation-hint" role="note">
             <span className="desktop-only">
-              No computador, clique com o botao direito no mapa para criar um ponto exatamente no local desejado.
+              Use Novo ponto para criar no centro do mapa. Se preferir um atalho, clique com o botao direito para criar exatamente no local desejado.
             </span>
             <span className="mobile-only">
               No celular, arraste o mapa ate o local desejado e toque em Novo ponto. O ponto sera criado no centro do mapa.
@@ -808,7 +886,41 @@ export function MapDashboard({
             {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posicao"}
           </button>
         </div>
+
+        <div className="map-quick-filters">
+          <button
+            className="button-ghost compact quick-filter-summary"
+            onClick={() => setIsFiltersOpen(true)}
+            type="button"
+          >
+            <Filter aria-hidden="true" size={15} />
+            {classificationQuickLabel}
+          </button>
+          {canReviewInCurrentScope ? (
+            <button
+              className={`button-ghost compact quick-filter-chip${pendingOnly ? " active" : ""}`}
+              onClick={() => setPendingOnly((current) => !current)}
+              type="button"
+            >
+              Pendentes
+            </button>
+          ) : null}
+          {isAuthenticated ? (
+            <button
+              className={`button-ghost compact quick-filter-chip${mineOnly ? " active" : ""}`}
+              onClick={() => setMineOnly((current) => !current)}
+              type="button"
+            >
+              Meus pontos
+            </button>
+          ) : null}
+          {hasAdvancedFiltersActive ? <span className="badge">Filtros avancados ativos</span> : null}
+        </div>
       </section>
+
+      {feedback ? (
+        <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback(null)} />
+      ) : null}
 
       {activeFilterLabels.length ? (
         <section className="panel filter-summary-bar">
@@ -990,7 +1102,7 @@ export function MapDashboard({
 
       {isGroupPickerOpen ? (
         <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card modal-card-compact stack-md">
+          <div className="modal-card modal-card-compact stack-md" ref={groupPickerModalRef} tabIndex={-1}>
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">
@@ -1047,13 +1159,13 @@ export function MapDashboard({
 
       {isFiltersOpen ? (
         <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card modal-card-compact stack-md">
+          <div className="modal-card modal-card-compact stack-md" ref={filtersModalRef} tabIndex={-1}>
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">
-                  <h2 className="section-title">Filtros e busca</h2>
+                  <h2 className="section-title">Filtros avancados e busca</h2>
                   <p className="subtitle">
-                    Escolha uma ou mais classificacoes, refine por tags e localize um endereco no mapa.
+                    Ajuste classificacoes, refine por especies e tags e localize um endereco no mapa.
                   </p>
                 </div>
                 <button
@@ -1217,6 +1329,16 @@ export function MapDashboard({
                     type="checkbox"
                   />
                   <span>Exibir somente pontos pendentes</span>
+                </label>
+              ) : null}
+              {isAuthenticated ? (
+                <label className="inline-toggle">
+                  <input
+                    checked={mineOnly}
+                    onChange={(event) => setMineOnly(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Exibir somente os meus pontos</span>
                 </label>
               ) : null}
             </div>

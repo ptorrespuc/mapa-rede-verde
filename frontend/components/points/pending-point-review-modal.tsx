@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import type {
   PendingPointReviewSummary,
   PointMediaRecord,
@@ -32,6 +33,7 @@ export function PendingPointReviewModal({
   const [summary, setSummary] = useState<PendingPointReviewSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const modalRef = useModalAccessibility<HTMLDivElement>(true, onClose);
 
   useEffect(() => {
     setMode(initialMode);
@@ -75,7 +77,7 @@ export function PendingPointReviewModal({
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card stack-md">
+      <div className="modal-card stack-md" ref={modalRef} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">
