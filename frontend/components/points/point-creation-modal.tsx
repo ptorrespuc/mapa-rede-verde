@@ -3,6 +3,7 @@
 import { Crosshair, MapPin, X } from "lucide-react";
 
 import { PointForm } from "@/components/points/point-form";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import type {
   CreatePointPayload,
   GroupRecord,
@@ -31,6 +32,8 @@ export function PointCreationModal({
   onClose,
   onCreate,
 }: PointCreationModalProps) {
+  const modalRef = useModalAccessibility<HTMLDivElement>(isOpen, onClose);
+
   if (!isOpen) {
     return null;
   }
@@ -40,7 +43,7 @@ export function PointCreationModal({
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card stack-md">
+      <div className="modal-card stack-md" ref={modalRef} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">

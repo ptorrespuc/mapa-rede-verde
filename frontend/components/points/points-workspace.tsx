@@ -9,8 +9,11 @@ import { toast } from "sonner";
 import { PointFilters } from "@/components/points/point-filters";
 import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { apiClient } from "@/lib/api-client";
+import type { FlashFeedbackPayload } from "@/lib/flash-feedback";
 import { getPointDisplayColor, getPointDisplayStatusLabel } from "@/lib/point-display";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import type {
   GroupRecord,
   PointClassificationRecord,
@@ -62,7 +65,12 @@ export function PointsWorkspace({
   const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FlashFeedbackPayload | null>(null);
   const hasHydrated = useRef(false);
+  const groupPickerModalRef = useModalAccessibility<HTMLDivElement>(
+    isGroupPickerOpen,
+    () => setIsGroupPickerOpen(false),
+  );
   const selectedGroup = visibleGroups.find((group) => group.id === groupFilter) ?? null;
   const currentGroupSummary = selectedGroup ?? (visibleGroups.length === 1 ? visibleGroups[0] : null);
   const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visiveis";
@@ -221,6 +229,20 @@ export function PointsWorkspace({
             : "Ponto aprovado."
           : "Revisao concluida.",
       );
+      setFeedback({
+        title:
+          action === "approve"
+            ? currentPoint?.has_pending_update
+              ? "Alteracao aprovada"
+              : "Ponto aprovado"
+            : "Ponto rejeitado",
+        message:
+          action === "approve"
+            ? "A listagem ja reflete a decisao tomada para este registro."
+            : "O ponto continua visivel apenas para os perfis com acesso de revisao.",
+        actionHref: currentPoint ? `/points/${currentPoint.id}` : undefined,
+        actionLabel: currentPoint ? "Abrir detalhe" : undefined,
+      });
       await refreshPoints();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel revisar o ponto.");
@@ -425,8 +447,12 @@ export function PointsWorkspace({
         </div>
       </section>
 
+      {feedback ? (
+        <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback(null)} />
+      ) : null}
+
       <section className="panel stack-md">
-        <div className="map-controls-bar compact">
+        <div className="workspace-quick-filters">
           <PointFilters
             classifications={classifications}
             value={classificationFilter}
@@ -438,7 +464,7 @@ export function PointsWorkspace({
             onClick={() => setIsTagFilterOpen((current) => !current)}
             type="button"
           >
-            {isTagFilterOpen ? "Ocultar filtros adicionais" : "Filtrar por tags e especies"}
+            {isTagFilterOpen ? "Ocultar filtros avancados" : "Filtros avancados"}
           </button>
           <label className="inline-toggle">
             <input
@@ -656,9 +682,9 @@ export function PointsWorkspace({
         </div>
       </section>
 
-      {isGroupPickerOpen ? (
+        {isGroupPickerOpen ? (
         <div aria-modal="true" className="modal-overlay" role="dialog">
-          <div className="modal-card modal-card-compact stack-md">
+          <div className="modal-card modal-card-compact stack-md" ref={groupPickerModalRef} tabIndex={-1}>
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">

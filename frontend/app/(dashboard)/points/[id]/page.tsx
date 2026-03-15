@@ -6,6 +6,7 @@ import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-tr
 import { PointReviewActions } from "@/components/points/point-review-actions";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { PointTimeline } from "@/components/points/point-timeline";
+import { PageFlashFeedback } from "@/components/ui/page-flash-feedback";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getPointDisplayStatusLabel, isPointPendingForReview } from "@/lib/point-display";
 import { withPointGroupLogo } from "@/lib/group-logos";
@@ -53,6 +54,8 @@ export default async function PointDetailPage({
 
   return (
     <section className="page-stack">
+      <PageFlashFeedback scope={`/points/${point.id}`} />
+
       <div className="page-header">
         <div>
           <p className="eyebrow">Detalhe do ponto</p>

@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { MapCanvas, type MapCanvasHandle } from "@/components/map/map-canvas";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 
 interface CoordinateValue {
   latitude: number;
@@ -33,6 +34,7 @@ export function PointCoordinatePickerModal({
   onConfirm,
 }: PointCoordinatePickerModalProps) {
   const mapRef = useRef<MapCanvasHandle | null>(null);
+  const modalRef = useModalAccessibility<HTMLDivElement>(isOpen, onClose);
   const [addressQuery, setAddressQuery] = useState("");
   const [mapCenter, setMapCenter] = useState<CoordinateValue | null>(initialCoordinates ?? null);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
@@ -108,7 +110,7 @@ export function PointCoordinatePickerModal({
 
   return (
     <div className="modal-overlay coordinate-picker-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card coordinate-picker-modal stack-md">
+      <div className="modal-card coordinate-picker-modal stack-md" ref={modalRef} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">

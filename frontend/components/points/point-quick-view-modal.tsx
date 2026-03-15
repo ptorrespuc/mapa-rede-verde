@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { apiClient } from "@/lib/api-client";
 import { getPointDisplayStatusLabel, isPointPendingForReview } from "@/lib/point-display";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import { PointReviewActions } from "@/components/points/point-review-actions";
 import type { PointMediaRecord, PointRecord } from "@/types/domain";
 
@@ -28,6 +29,7 @@ export function PointQuickViewModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pointMedia, setPointMedia] = useState<PointMediaRecord[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const modalRef = useModalAccessibility<HTMLDivElement>(Boolean(point), onClose);
 
   useEffect(() => {
     let ignore = false;
@@ -89,7 +91,7 @@ export function PointQuickViewModal({
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card stack-md">
+      <div className="modal-card stack-md" ref={modalRef} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">

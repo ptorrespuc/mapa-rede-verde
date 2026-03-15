@@ -6,6 +6,7 @@ import { Eye, MapPinned, X } from "lucide-react";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { loadGoogleMapsLibraries } from "@/lib/google-maps";
 import { getPointDisplayColor } from "@/lib/point-display";
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import type { PointRecord } from "@/types/domain";
 
 type PointMapPreviewPoint = Pick<
@@ -43,6 +44,7 @@ export function PointMapPreviewTrigger({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const modalRef = useModalAccessibility<HTMLDivElement>(isOpen, () => setIsOpen(false));
 
   useEffect(() => {
     let ignore = false;
@@ -147,7 +149,7 @@ export function PointMapPreviewTrigger({
 
       {isOpen ? (
         <div aria-modal="true" className="modal-overlay" role="dialog">
-          <div className="modal-card stack-md">
+          <div className="modal-card stack-md" ref={modalRef} tabIndex={-1}>
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">

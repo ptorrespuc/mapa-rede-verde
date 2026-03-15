@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 
+import { useModalAccessibility } from "@/lib/use-modal-accessibility";
+
 interface AdminModalProps {
   isOpen: boolean;
   title: string;
@@ -11,13 +13,15 @@ interface AdminModalProps {
 }
 
 export function AdminModal({ isOpen, title, subtitle, onClose, children }: AdminModalProps) {
+  const modalRef = useModalAccessibility<HTMLDivElement>(isOpen, onClose);
+
   if (!isOpen) {
     return null;
   }
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card stack-md">
+      <div className="modal-card stack-md" ref={modalRef} tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">
