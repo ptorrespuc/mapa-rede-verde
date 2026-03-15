@@ -71,6 +71,7 @@ const SECTION_OPTIONS: Array<{ id: AdminSection; label: string }> = [
   { id: "groups", label: "Grupos" },
   { id: "users", label: "Usuarios" },
   { id: "classifications", label: "Classificacoes" },
+  { id: "tags", label: "Tags" },
   { id: "event-types", label: "Tipos de evento" },
   { id: "species", label: "Especies" },
 ];
@@ -180,6 +181,8 @@ export function AdminPanel({
   const [tagDescription, setTagDescription] = useState("");
   const [tagClassificationId, setTagClassificationId] = useState("");
   const [tagIsActive, setTagIsActive] = useState(true);
+  const [tagFilterText, setTagFilterText] = useState("");
+  const [tagClassificationFilterId, setTagClassificationFilterId] = useState("all");
 
   const [eventTypeName, setEventTypeName] = useState("");
   const [eventTypeSlug, setEventTypeSlug] = useState("");
@@ -246,6 +249,26 @@ export function AdminPanel({
     modalMode === "create" && activeClassifications.length > 0
       ? activeClassifications
       : classifications;
+  const filteredPointTags = useMemo(() => {
+    const query = tagFilterText.trim().toLowerCase();
+
+    return pointTags.filter((tag) => {
+      if (
+        tagClassificationFilterId !== "all" &&
+        tag.point_classification_id !== tagClassificationFilterId
+      ) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [tag.name, tag.slug, tag.description ?? "", tag.point_classification_name ?? ""].some(
+        (value) => value.toLowerCase().includes(query),
+      );
+    });
+  }, [pointTags, tagClassificationFilterId, tagFilterText]);
   const filteredSpeciesCatalog = useMemo(() => {
     const query = speciesFilterText.trim().toLowerCase();
 
@@ -1245,6 +1268,95 @@ export function AdminPanel({
     );
   }
 
+  function renderTagsSection() {
+    return (
+      <section className="list-card stack-md">
+        <div className="panel-header">
+          <div className="stack-xs">
+            <h2 className="section-title">Catalogo de tags</h2>
+            <p className="subtitle">
+              Visao global para buscar, revisar e manter as tags de todas as classificacoes.
+            </p>
+          </div>
+          <div className="button-row">
+            <span className="badge">{pointTags.length}</span>
+            <button className="button-secondary" onClick={() => openCreateModal("tags")} type="button">
+              Nova tag
+            </button>
+          </div>
+        </div>
+
+        <div className="input-grid two">
+          <div className="field">
+            <label htmlFor="tag-filter-text">Buscar tag</label>
+            <input
+              id="tag-filter-text"
+              onChange={(event) => setTagFilterText(event.target.value)}
+              placeholder="Nome, slug, descricao ou classificacao"
+              value={tagFilterText}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="tag-classification-filter">Classificacao</label>
+            <select
+              id="tag-classification-filter"
+              onChange={(event) => setTagClassificationFilterId(event.target.value)}
+              value={tagClassificationFilterId}
+            >
+              <option value="all">Todas</option>
+              {classifications.map((classification) => (
+                <option key={classification.id} value={classification.id}>
+                  {classification.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="list list-spaced">
+          {filteredPointTags.length
+            ? filteredPointTags.map((tag) => (
+                <div className="list-row" key={tag.id}>
+                  <div className="stack-xs">
+                    <strong>{tag.name}</strong>
+                    <span className="muted">
+                      {(tag.point_classification_name ?? "Sem classificacao")} - {tag.slug}
+                    </span>
+                    {tag.description ? <span className="muted">{tag.description}</span> : null}
+                  </div>
+                  <div className="button-row">
+                    <span className="badge">{tag.is_active ? "ativa" : "inativa"}</span>
+                    <button
+                      className="button-ghost danger"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Deseja excluir esta tag? Se houver pontos relacionados, ela sera apenas desativada.",
+                          )
+                        ) {
+                          void handleDeletePointTag(tag.id);
+                        }
+                      }}
+                      type="button"
+                    >
+                      Excluir
+                    </button>
+                    <button
+                      className="button-ghost"
+                      onClick={() => openEditModal("tags", tag.id)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              ))
+            : renderEmpty("Nenhuma tag cadastrada para os filtros atuais.")}
+        </div>
+      </section>
+    );
+  }
+
   function renderSpeciesSection() {
     return (
       <section className="list-card stack-md">
@@ -1335,6 +1447,7 @@ export function AdminPanel({
     if (activeSection === "groups") return renderGroupsSection();
     if (activeSection === "users") return renderUsersSection();
     if (activeSection === "classifications") return renderClassificationsSection();
+    if (activeSection === "tags") return renderTagsSection();
     if (activeSection === "event-types") return renderEventTypesSection();
     return renderSpeciesSection();
   }

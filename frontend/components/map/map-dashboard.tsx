@@ -608,6 +608,52 @@ export function MapDashboard({
         : "Trocar grupo";
   const mobileGroupSwitcherLabel =
     groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
+  const hasClassificationRestriction =
+    selectedClassificationIds.length !== activeClassificationIds.length ||
+    activeClassificationIds.some(
+      (classificationId) => !selectedClassificationIds.includes(classificationId),
+    );
+  const hasTagRestriction =
+    visibleTagOptions.length > 0 && selectedTagIds.length < visibleTagOptions.length;
+  const hasSpeciesRestriction =
+    visibleSpeciesOptions.length > 0 && selectedSpeciesIds.length < visibleSpeciesOptions.length;
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (hasClassificationRestriction) {
+      labels.push(
+        selectedClassificationIds.length
+          ? `${selectedClassificationIds.length} classificacoes`
+          : "Nenhuma classificacao",
+      );
+    }
+
+    if (hasSpeciesRestriction) {
+      labels.push(
+        selectedSpeciesIds.length
+          ? `${selectedSpeciesIds.length} especies`
+          : "Nenhuma especie",
+      );
+    }
+
+    if (hasTagRestriction) {
+      labels.push(selectedTagIds.length ? `${selectedTagIds.length} tags` : "Nenhuma tag");
+    }
+
+    if (pendingOnly) {
+      labels.push("Somente pendentes");
+    }
+
+    return labels;
+  }, [
+    hasClassificationRestriction,
+    hasSpeciesRestriction,
+    hasTagRestriction,
+    pendingOnly,
+    selectedClassificationIds.length,
+    selectedSpeciesIds.length,
+    selectedTagIds.length,
+  ]);
 
   function toggleClassificationFilter(classificationId: string) {
     setSelectedClassificationIds((current) =>
@@ -629,6 +675,10 @@ export function MapDashboard({
     setSelectedClassificationIds(activeClassificationIds);
   }
 
+  function clearClassificationSelection() {
+    setSelectedClassificationIds([]);
+  }
+
   function toggleSpeciesFilter(speciesId: string) {
     setSelectedSpeciesIds((current) =>
       current.includes(speciesId)
@@ -639,6 +689,25 @@ export function MapDashboard({
 
   function selectAllSpecies() {
     setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+  }
+
+  function clearSpeciesSelection() {
+    setSelectedSpeciesIds([]);
+  }
+
+  function selectAllTags() {
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+  }
+
+  function clearTagSelection() {
+    setSelectedTagIds([]);
+  }
+
+  function clearMapFilters() {
+    setSelectedClassificationIds(activeClassificationIds);
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+    setPendingOnly(false);
   }
 
   useEffect(() => {
@@ -740,6 +809,33 @@ export function MapDashboard({
           </button>
         </div>
       </section>
+
+      {activeFilterLabels.length ? (
+        <section className="panel filter-summary-bar">
+          <div className="stack-xs">
+            <strong>Filtros ativos no mapa</strong>
+            <div className="filter-summary-badges">
+              {activeFilterLabels.map((label) => (
+                <span className="badge" key={label}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="button-row filter-summary-actions">
+            <button
+              className="button-ghost compact"
+              onClick={() => setIsFiltersOpen(true)}
+              type="button"
+            >
+              Ver filtros
+            </button>
+            <button className="button-ghost compact danger" onClick={clearMapFilters} type="button">
+              Limpar filtros
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
@@ -980,9 +1076,14 @@ export function MapDashboard({
                       Os pontos do mapa respeitam todas as classificacoes marcadas abaixo.
                     </span>
                   </div>
-                  <button className="button-ghost" onClick={selectAllClassifications} type="button">
-                    Marcar todas
-                  </button>
+                  <div className="button-row">
+                    <button className="button-ghost" onClick={selectAllClassifications} type="button">
+                      Marcar todas
+                    </button>
+                    <button className="button-ghost" onClick={clearClassificationSelection} type="button">
+                      Desmarcar todas
+                    </button>
+                  </div>
                 </div>
 
                 <div className="map-filter-grid">
@@ -1008,9 +1109,14 @@ export function MapDashboard({
                     </span>
                   </div>
                   {visibleSpeciesOptions.length ? (
-                    <button className="button-ghost" onClick={selectAllSpecies} type="button">
-                      Marcar todas
-                    </button>
+                    <div className="button-row">
+                      <button className="button-ghost" onClick={selectAllSpecies} type="button">
+                        Marcar todas
+                      </button>
+                      <button className="button-ghost" onClick={clearSpeciesSelection} type="button">
+                        Desmarcar todas
+                      </button>
+                    </div>
                   ) : null}
                 </div>
 
@@ -1041,11 +1147,23 @@ export function MapDashboard({
               </div>
 
               <div className="stack-sm">
-                <div className="stack-xs">
-                  <strong>Tags</strong>
-                  <span className="muted">
-                    As tags acompanham as classificacoes marcadas. Se todas estiverem marcadas, o mapa nao restringe por tags.
-                  </span>
+                <div className="panel-header">
+                  <div className="stack-xs">
+                    <strong>Tags</strong>
+                    <span className="muted">
+                      As tags acompanham as classificacoes marcadas. Se todas estiverem marcadas, o mapa nao restringe por tags.
+                    </span>
+                  </div>
+                  {visibleTagOptions.length ? (
+                    <div className="button-row">
+                      <button className="button-ghost" onClick={selectAllTags} type="button">
+                        Marcar todas
+                      </button>
+                      <button className="button-ghost" onClick={clearTagSelection} type="button">
+                        Desmarcar todas
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
                 {selectedClassificationIds.length ? (
                   visibleTagOptions.length ? (

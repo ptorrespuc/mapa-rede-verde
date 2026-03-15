@@ -282,6 +282,53 @@ export function PointsWorkspace({
         : "Trocar grupo";
   const mobileGroupSwitcherLabel =
     groupFilter === "all" ? "Grupos" : isGroupSelectionImplicit ? "Escolher" : "Trocar grupo";
+  const hasTagRestriction =
+    visibleTagOptions.length > 0 && selectedTagIds.length < visibleTagOptions.length;
+  const hasSpeciesRestriction =
+    visibleSpeciesOptions.length > 0 &&
+    selectedSpeciesIds.length < visibleSpeciesOptions.length;
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (classificationFilter !== "all") {
+      const classificationName =
+        classifications.find((classification) => classification.id === classificationFilter)?.name ??
+        "Classificacao filtrada";
+      labels.push(classificationName);
+    }
+
+    if (hasSpeciesRestriction) {
+      labels.push(
+        selectedSpeciesIds.length
+          ? `${selectedSpeciesIds.length} especies`
+          : "Nenhuma especie",
+      );
+    }
+
+    if (hasTagRestriction) {
+      labels.push(selectedTagIds.length ? `${selectedTagIds.length} tags` : "Nenhuma tag");
+    }
+
+    if (pendingOnly) {
+      labels.push("Apenas pendentes");
+    }
+
+    if (mineOnly !== defaultMineOnly) {
+      labels.push(mineOnly ? "Meus pontos" : "Todos os pontos visiveis");
+    }
+
+    return labels;
+  }, [
+    classificationFilter,
+    classifications,
+    defaultMineOnly,
+    hasSpeciesRestriction,
+    hasTagRestriction,
+    mineOnly,
+    pendingOnly,
+    selectedSpeciesIds.length,
+    selectedTagIds.length,
+  ]);
 
   function handleTagToggle(tagId: string) {
     setSelectedTagIds((current) =>
@@ -297,6 +344,30 @@ export function PointsWorkspace({
         ? current.filter((currentSpeciesId) => currentSpeciesId !== speciesId)
         : [...current, speciesId],
     );
+  }
+
+  function selectAllSpecies() {
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+  }
+
+  function clearSpeciesSelection() {
+    setSelectedSpeciesIds([]);
+  }
+
+  function selectAllTags() {
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
+  }
+
+  function clearTagSelection() {
+    setSelectedTagIds([]);
+  }
+
+  function clearWorkspaceFilters() {
+    setClassificationFilter("all");
+    setPendingOnly(false);
+    setMineOnly(defaultMineOnly);
+    setSelectedSpeciesIds(visibleSpeciesOptions.map((species) => species.id));
+    setSelectedTagIds(visibleTagOptions.map((tag) => tag.id));
   }
 
   return (
@@ -387,13 +458,60 @@ export function PointsWorkspace({
           </label>
         </div>
 
+        {activeFilterLabels.length ? (
+          <div className="filter-summary-bar">
+            <div className="stack-xs">
+              <strong>Filtros ativos na listagem</strong>
+              <div className="filter-summary-badges">
+                {activeFilterLabels.map((label) => (
+                  <span className="badge" key={label}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="button-row filter-summary-actions">
+              <button
+                className="button-ghost compact"
+                onClick={() => setIsTagFilterOpen(true)}
+                type="button"
+              >
+                Ver filtros
+              </button>
+              <button
+                className="button-ghost compact danger"
+                onClick={clearWorkspaceFilters}
+                type="button"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {isTagFilterOpen ? (
           <div className="surface-subtle point-tag-filter-panel stack-sm">
-            <div className="stack-xs">
-              <strong>Especies</strong>
-              <span className="muted">
-                O filtro por especie aparece quando houver pontos de classificacoes que usam especies.
-              </span>
+            <div className="panel-header">
+              <div className="stack-xs">
+                <strong>Especies</strong>
+                <span className="muted">
+                  O filtro por especie aparece quando houver pontos de classificacoes que usam especies.
+                </span>
+              </div>
+              {visibleSpeciesOptions.length ? (
+                <div className="button-row">
+                  <button className="button-ghost compact" onClick={selectAllSpecies} type="button">
+                    Marcar todas
+                  </button>
+                  <button
+                    className="button-ghost compact"
+                    onClick={clearSpeciesSelection}
+                    type="button"
+                  >
+                    Desmarcar todas
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {visibleSpeciesOptions.length ? (
@@ -415,13 +533,25 @@ export function PointsWorkspace({
               </span>
             )}
 
-            <div className="stack-xs">
-              <strong>Tags</strong>
-              <span className="muted">
-                {classificationFilter === "all"
-                  ? "Escolha uma classificacao para exibir as tags associadas."
-                  : "As tags da classificacao selecionada aparecem marcadas por padrao."}
-              </span>
+            <div className="panel-header">
+              <div className="stack-xs">
+                <strong>Tags</strong>
+                <span className="muted">
+                  {classificationFilter === "all"
+                    ? "Escolha uma classificacao para exibir as tags associadas."
+                    : "As tags da classificacao selecionada aparecem marcadas por padrao."}
+                </span>
+              </div>
+              {classificationFilter !== "all" && visibleTagOptions.length ? (
+                <div className="button-row">
+                  <button className="button-ghost compact" onClick={selectAllTags} type="button">
+                    Marcar todas
+                  </button>
+                  <button className="button-ghost compact" onClick={clearTagSelection} type="button">
+                    Desmarcar todas
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {classificationFilter !== "all" ? (

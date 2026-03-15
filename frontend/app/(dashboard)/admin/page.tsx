@@ -86,19 +86,16 @@ export default async function AdminPage({
     ]);
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const requestedSection =
-    resolvedSearchParams?.section === "tags"
-      ? "classifications"
-      : resolvedSearchParams?.section;
   const availableSections = context.is_super_admin
-    ? ["groups", "users", "classifications", "event-types", "species"]
+    ? ["groups", "users", "classifications", "tags", "event-types", "species"]
     : ["groups", "users"];
   const initialSection =
-    requestedSection && availableSections.includes(requestedSection)
-      ? (requestedSection as
+    resolvedSearchParams?.section && availableSections.includes(resolvedSearchParams.section)
+      ? (resolvedSearchParams.section as
           | "groups"
           | "users"
           | "classifications"
+          | "tags"
           | "event-types"
           | "species")
       : "groups";
