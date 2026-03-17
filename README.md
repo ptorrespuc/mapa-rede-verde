@@ -1,31 +1,44 @@
 # Mapa Rede Verde
 
-Plataforma multi-tenant de gestao ambiental com:
+Plataforma multi-tenant de gestao ambiental com uma estrategia de duas frentes:
 
-- `frontend/`: Next.js + TypeScript + Google Maps JavaScript API
+- `frontend/`: web oficial em `Next.js`, publicada na Vercel
+- `mobile/`: app mobile em `Expo`, voltado para operacao em campo
 - `backend/`: schema Supabase, migrations, RLS e seeds
+
+## Estrategia recomendada
+
+Este repositorio segue a linha:
+
+- `Next.js` continua como frente web oficial
+- `Expo` vira a frente mobile oficial
+- ambos compartilham o mesmo backend no Supabase
+- alteracoes de regra de negocio e dados continuam centralizadas no backend
+
+Esse modelo evita replatform desnecessaria da web e permite evoluir a experiencia mobile sem perder a Vercel como deploy principal do produto web.
 
 ## Stack
 
-- Frontend: Next.js App Router, React, TypeScript, Google Maps JavaScript API
+- Web: Next.js App Router, React, TypeScript, Google Maps JavaScript API
+- Mobile: Expo, Expo Router, React Native, react-native-maps
 - Backend: Supabase Auth, PostgreSQL, PostGIS, Row Level Security
-- Deploy: Vercel + Supabase
+- Deploy web: Vercel
 
-## Bootstrapping
+## Bootstrapping do backend
 
 1. Crie o projeto no Supabase e valide a extensao `postgis`.
-2. Execute as migrations em ordem:
-   - `backend/supabase/migrations/202603090001_initial_schema.sql`
-   - `backend/supabase/migrations/202603090002_public_visibility.sql`
-   - `backend/supabase/migrations/202603090003_point_species.sql`
-   - `backend/supabase/migrations/202603100001_timeline_event_media.sql`
-   - `backend/supabase/migrations/202603100002_point_classifications_and_event_types.sql`
-   - `backend/supabase/migrations/202603100005_fix_point_function_ambiguity.sql`
-   - `backend/supabase/migrations/202603100006_group_code_and_map_selection.sql`
-3. Crie `frontend/.env.local` a partir de `frontend/.env.example`.
-4. Preencha `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` e as chaves do Supabase.
-5. No Google Cloud, habilite tambem a `Geocoding API` se quiser usar a busca por endereco no mapa.
-6. Instale as dependencias e rode o frontend:
+2. Execute as migrations em ordem.
+3. Configure os projetos web e mobile com as chaves do Supabase.
+
+## Rodando a web
+
+1. Crie `frontend/.env.local` a partir de `frontend/.env.example`.
+2. Preencha:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+3. Rode:
 
 ```bash
 cd frontend
@@ -33,12 +46,20 @@ npm install
 npm run dev
 ```
 
-## Modelagem atual
+## Rodando o mobile
 
-- Ponto usa `point_classification_id` como classificacao principal.
-- Cada classificacao pode ter seus proprios tipos de evento em `point_event_types`.
-- Se uma classificacao nao tiver tipos de evento, a timeline do ponto salva eventos genericos.
-- Reclassificacao do ponto gera evento automatico na linha do tempo.
+1. Crie `mobile/.env.local` a partir de `mobile/.env.example`.
+2. Preencha:
+   - `EXPO_PUBLIC_SUPABASE_URL`
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+   - `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`
+3. Rode:
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
 
 ## Navegacao por grupo
 
