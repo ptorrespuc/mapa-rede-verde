@@ -10,7 +10,6 @@ frontend/test-results/
 frontend/tsconfig.tsbuildinfo
 
 # mobile
-mobile/
 mobile/node_modules/
 mobile/.expo/
 mobile/.env.local
