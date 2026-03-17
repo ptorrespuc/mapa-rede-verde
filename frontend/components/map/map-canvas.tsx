@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { apiClient } from "@/lib/api-client";
+import { getCurrentDeviceLocation } from "@/lib/device-location";
 import { loadGoogleMapsLibraries } from "@/lib/google-maps";
 import { getPointDisplayColor, getPointDisplayStatusLabel } from "@/lib/point-display";
 import type { PointMediaRecord, PointRecord } from "@/types/domain";
@@ -565,29 +566,15 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   }
 
   async function centerMapOnCurrentLocation(map: google.maps.Map) {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      return { success: false, message: "Geolocalizacao nao disponivel neste navegador." };
-    }
+    const result = await getCurrentDeviceLocation();
 
-    const position = await new Promise<GeolocationPosition | null>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (currentPosition) => resolve(currentPosition),
-        () => resolve(null),
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000,
-        },
-      );
-    });
-
-    if (!position) {
-      return { success: false, message: "Nao foi possivel localizar sua posicao atual." };
+    if (!result.success || !result.coordinates) {
+      return { success: false, message: result.message };
     }
 
     const userLocation = {
-      lat: position.coords.latitude,
-      lng: position.coords.longitude,
+      lat: result.coordinates.latitude,
+      lng: result.coordinates.longitude,
     };
 
     skipNextBoundsFitRef.current = true;

@@ -1,5 +1,11 @@
 {
   "root": true,
-  "ignorePatterns": ["next-env.d.ts", ".next/**"],
+  "ignorePatterns": [
+    "next-env.d.ts",
+    ".next/**",
+    "android/.gradle/**",
+    "android/build/**",
+    "android/app/build/**"
+  ],
   "extends": ["next/core-web-vitals", "next/typescript"]
 }
