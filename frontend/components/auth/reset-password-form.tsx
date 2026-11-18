@@ -41,7 +41,7 @@ export function ResetPasswordForm() {
       setIsCheckingSession(false);
 
       if (!session && !hashHint.includes("access_token")) {
-        setErrorMessage("Link de recuperacao inválido ou expirado.");
+        setErrorMessage("Link de recuperação inválido ou expirado.");
       }
     }
 
@@ -77,7 +77,7 @@ export function ResetPasswordForm() {
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("A confirmacao da senha precisa ser igual a nova senha.");
+      setErrorMessage("A confirmação da senha precisa ser igual a nova senha.");
       return;
     }
 
@@ -116,12 +116,12 @@ export function ResetPasswordForm() {
           <p className="eyebrow">Mapa Rede Verde</p>
           <h1 className="title">Redefinir senha</h1>
           <p className="subtitle">
-            Escolha uma nova senha para concluir a recuperacao de acesso.
+            Escolha uma nova senha para concluir a recuperação de acesso.
           </p>
         </div>
 
         {isCheckingSession ? (
-          <p className="muted">Validando o link de recuperacao...</p>
+          <p className="muted">Validando o link de recuperação...</p>
         ) : hasRecoverySession ? (
           <form className="form-stack" onSubmit={handleSubmit}>
             <div className="field">
@@ -159,7 +159,7 @@ export function ResetPasswordForm() {
           </form>
         ) : (
           <div className="stack-sm">
-            <p className="error">{errorMessage ?? "Link de recuperacao invalido ou expirado."}</p>
+            <p className="error">{errorMessage ?? "Link de recuperação inválido ou expirado."}</p>
             <Link className="button-ghost" href="/login">
               Voltar ao login
             </Link>

@@ -581,7 +581,7 @@ export function PointForm({
           </div>
 
           <div className="field">
-            <label htmlFor="point-classification">Classificacao do ponto</label>
+            <label htmlFor="point-classification">Classificação do ponto</label>
             <select
               id="point-classification"
               value={formState.classificationId}
@@ -619,7 +619,7 @@ export function PointForm({
 
         {requiresSpecies ? (
           <div className="field">
-            <label htmlFor="point-species">Especie</label>
+            <label htmlFor="point-species">Espécie</label>
             <input
               id="point-species-search"
               autoComplete="off"
@@ -654,12 +654,12 @@ export function PointForm({
               ))}
             </select>
             <span className="hint">
-              Esta classificação usa o catalogo de espécies. Vincular uma espécie ao ponto e
+              Esta classificação usa o catálogo de espécies. Vincular uma espécie ao ponto e
               opcional.
             </span>
             {!filteredSpecies.length ? (
               <div className="surface-subtle stack-xs">
-                <span className="muted">Nenhuma especie encontrada para esta busca.</span>
+                <span className="muted">Nenhuma espécie encontrada para esta busca.</span>
                 {speciesAdminLink ? (
                   <Link className="button-ghost" href={speciesAdminLink} rel="noreferrer" target="_blank">
                     Cadastrar nova espécie
@@ -683,7 +683,7 @@ export function PointForm({
 
         {isLoadingTags ? (
           <div className="surface-subtle">
-            <span className="muted">Carregando tags da classificacao...</span>
+            <span className="muted">Carregando tags da classificação...</span>
           </div>
         ) : availableTags.length ? (
           <div className="field">
@@ -714,7 +714,7 @@ export function PointForm({
         ) : null}
 
         <div className="field">
-          <label htmlFor="point-title">Titulo</label>
+          <label htmlFor="point-title">Título</label>
           <input
             id="point-title"
             value={formState.title}
@@ -727,7 +727,7 @@ export function PointForm({
         </div>
 
         <div className="field">
-          <label htmlFor="point-description">Descricao</label>
+          <label htmlFor="point-description">Descrição</label>
           <textarea
             id="point-description"
             value={formState.description}
@@ -740,7 +740,7 @@ export function PointForm({
       <section className="form-section stack-md">
         <div className="form-section-header">
           <div className="stack-xs">
-            <h3 className="form-section-title">Localizacao</h3>
+            <h3 className="form-section-title">Localização</h3>
             <p className="muted">
               A posição do ponto pode vir direto do mapa e so precisa de ajuste se necessário.
             </p>
@@ -803,7 +803,7 @@ export function PointForm({
                   onChange={(event) => setField("latitude", event.target.value)}
                   required
                 />
-                <span className="hint">Valores em graus decimais, no padrao WGS84.</span>
+                <span className="hint">Valores em graus decimais, no padrão WGS84.</span>
               </div>
             </div>
 
@@ -1101,8 +1101,8 @@ export function PointForm({
         <section className="form-section stack-md">
           <div className="form-section-header">
             <div className="stack-xs">
-              <h3 className="form-section-title">Configuracoes do ponto</h3>
-              <p className="muted">Ajustes visiveis apenas para quem pode gerenciar o grupo.</p>
+              <h3 className="form-section-title">Configurações do ponto</h3>
+              <p className="muted">Ajustes visíveis apenas para quem pode gerenciar o grupo.</p>
             </div>
           </div>
 

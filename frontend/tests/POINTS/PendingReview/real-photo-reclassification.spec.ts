@@ -106,7 +106,7 @@ test.describe("reclassificacao com troca de fotos", () => {
       await page.getByRole("button", { name: "Salvar alteracoes" }).click();
       await page.waitForURL(new RegExp(`/points/${pointId}$`));
 
-      await expect(page.getByText("Alteracao pendente", { exact: true })).toBeVisible();
+      await expect(page.getByText("Alteração pendente", { exact: true })).toBeVisible();
       await logout(page);
 
       await login(page, scenario.approver);
@@ -115,7 +115,7 @@ test.describe("reclassificacao com troca de fotos", () => {
 
       const reviewDialog = page.getByRole("dialog");
 
-      await expect(reviewDialog.getByRole("heading", { name: "Alteracao pendente" })).toBeVisible();
+      await expect(reviewDialog.getByRole("heading", { name: "Alteração pendente" })).toBeVisible();
       await expect(reviewDialog.getByText("fotos atuais serao substituidas")).toBeVisible();
       await expect(reviewDialog.getByRole("heading", { name: "Fotos atuais" })).toBeVisible();
       await expect(reviewDialog.getByRole("heading", { name: "Fotos pendentes" })).toBeVisible();

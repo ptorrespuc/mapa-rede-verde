@@ -121,8 +121,8 @@ export function PointQuickViewModal({
 
         <div className="point-meta">
           <span className="badge">{currentPoint.classification_name}</span>
-          <span className="badge">{currentPoint.is_public ? "publico" : "privado"}</span>
-          <span className="badge">{currentPoint.group_is_public ? "grupo publico" : "grupo privado"}</span>
+          <span className="badge">{currentPoint.is_public ? "público" : "privado"}</span>
+          <span className="badge">{currentPoint.group_is_public ? "grupo público" : "grupo privado"}</span>
           <span className="badge">{getPointDisplayStatusLabel(currentPoint)}</span>
           <span className="badge">
             {currentPoint.approval_status === "approved"
@@ -131,13 +131,13 @@ export function PointQuickViewModal({
                 ? "pendente"
                 : "rejeitado"}
           </span>
-          {currentPoint.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
+          {currentPoint.has_pending_update ? <span className="badge">alteração pendente</span> : null}
         </div>
         <PointTagBadges className="point-tag-list point-tag-list-compact" tags={currentPoint.tags} />
 
         {currentPoint.classification_requires_species && currentPoint.species_name ? (
           <div className="surface-subtle stack-xs">
-            <span className="muted">Especie</span>
+            <span className="muted">Espécie</span>
             <strong>{currentPoint.species_name}</strong>
           </div>
         ) : null}
@@ -173,8 +173,8 @@ export function PointQuickViewModal({
 
         <div className="stack-sm">
           <div>
-            <span className="muted">Descricao</span>
-            <p className="detail-value">{currentPoint.description || "Nenhuma descricao informada."}</p>
+            <span className="muted">Descrição</span>
+            <p className="detail-value">{currentPoint.description || "Nenhuma descrição informada."}</p>
           </div>
           <div>
             <span className="muted">Coordenadas</span>

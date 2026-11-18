@@ -2399,10 +2399,14 @@ textarea {
     display: none;
   }
 
-  .map-list-panel .point-line-main,
-  .map-list-panel .point-line-badges,
-  .map-list-panel .point-line-support {
+  .map-list-panel .point-line-main {
     grid-column: 2;
+  }
+
+  /* Dentro do bloco principal tudo empilha numa coluna (anula a regra antiga de 3 colunas). */
+  .map-list-panel .point-line-main > *,
+  .map-list-panel .point-line-item .badge {
+    grid-column: auto;
   }
 
   .map-list-panel .point-line-metric {
@@ -2433,6 +2437,53 @@ textarea {
 
   .topbar-user-inline .muted {
     display: none;
+  }
+
+  /* Cabecalho do app compacto: marca e menu na mesma linha. */
+  .topbar-leading {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .brand-block {
+    width: auto;
+  }
+
+  .topbar-user {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Visitante: o aviso "Acesso publico" sai do celular; fica so o botao Entrar. */
+  .topbar-user > .topbar-user-card:not(.topbar-account-trigger) {
+    display: none;
+  }
+
+  .topbar-user > .button-ghost {
+    width: auto;
+    margin-left: auto;
+  }
+
+  /* Cabecalho do mapa: botoes lado a lado em vez de um por linha. */
+  .map-header-panel .button,
+  .map-header-panel .button-ghost {
+    width: auto;
+  }
+
+  .map-header-actions.compact,
+  .map-quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .map-header-actions-near-map {
+    margin-top: 0.4rem;
   }
 }
 

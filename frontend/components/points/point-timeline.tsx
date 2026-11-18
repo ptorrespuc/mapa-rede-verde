@@ -265,7 +265,7 @@ export function PointTimeline({
       {canManage ? (
         <section className="panel stack-md">
           <div>
-            <h2 className="section-title">Adicionar informacoes a linha do tempo</h2>
+            <h2 className="section-title">Adicionar informações a linha do tempo</h2>
             <p className="subtitle">
               Registre fotos, observações e atualizações relacionadas a este ponto.
             </p>
@@ -281,7 +281,7 @@ export function PointTimeline({
               <div className="input-grid two">
                 {hasConfiguredEventTypes ? (
                   <div className="field">
-                    <label htmlFor="event-type">Categoria da informacao</label>
+                    <label htmlFor="event-type">Categoria da informação</label>
                     <select
                       id="event-type"
                       value={pointEventTypeId}
@@ -299,7 +299,7 @@ export function PointTimeline({
                 ) : null}
 
                 <div className="field">
-                  <label htmlFor="event-date">Data da informacao</label>
+                  <label htmlFor="event-date">Data da informação</label>
                   <input
                     id="event-date"
                     type="datetime-local"
@@ -319,7 +319,7 @@ export function PointTimeline({
               ) : null}
 
               <div className="field">
-                <label htmlFor="event-description">Descricao da informacao</label>
+                <label htmlFor="event-description">Descrição da informação</label>
                 <textarea
                   id="event-description"
                   value={description}
@@ -329,7 +329,7 @@ export function PointTimeline({
               </div>
 
               <div className="field">
-                <label htmlFor="event-photos-gallery">Fotos da informacao</label>
+                <label htmlFor="event-photos-gallery">Fotos da informação</label>
                 <input
                   id="event-photos-gallery"
                   ref={galleryInputRef}
@@ -405,7 +405,7 @@ export function PointTimeline({
                           </span>
                         </div>
                         <div className="field">
-                          <label htmlFor={`photo-caption-${photo.id}`}>Descricao da foto</label>
+                          <label htmlFor={`photo-caption-${photo.id}`}>Descrição da foto</label>
                           <input
                             id={`photo-caption-${photo.id}`}
                             value={photo.caption}
@@ -498,7 +498,7 @@ export function PointTimeline({
                     )
                   ) : null}
                 </div>
-                <p className="timeline-description">{item.description || "Sem descricao."}</p>
+                <p className="timeline-description">{item.description || "Sem descrição."}</p>
                 {item.media.length ? (
                   <div className="timeline-media-grid">
                     {item.media.map((media) => (
@@ -539,7 +539,7 @@ export function PointTimeline({
                 </div>
               </article>
             ))}
-            {!events.length ? <p className="muted">Ainda nao ha eventos registrados.</p> : null}
+            {!events.length ? <p className="muted">Ainda não ha eventos registrados.</p> : null}
           </div>
         </div>
       </section>

@@ -23,7 +23,7 @@ export function PasswordChangeForm() {
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("A confirmacao da senha precisa ser igual a nova senha.");
+      setErrorMessage("A confirmação da senha precisa ser igual a nova senha.");
       return;
     }
 

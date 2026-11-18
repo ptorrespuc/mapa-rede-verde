@@ -89,7 +89,7 @@ export default async function PointDetailPage({
 
       <div className="stat-grid point-detail-summary-grid">
         <article className="stat-card point-detail-location-card">
-          <span className="muted">Localizacao</span>
+          <span className="muted">Localização</span>
           <div className="point-detail-location-row">
             <div className="point-detail-coordinate-chip">
               <span className="muted">Latitude</span>
@@ -153,13 +153,13 @@ export default async function PointDetailPage({
         <div className="stack-sm">
           {point.description?.trim() ? (
             <div>
-              <h2 className="section-title">Descricao</h2>
+              <h2 className="section-title">Descrição</h2>
               <p className="subtitle">{point.description}</p>
             </div>
           ) : null}
           {point.classification_requires_species && point.species_name ? (
             <div>
-              <span className="muted">Especie registrada</span>
+              <span className="muted">Espécie registrada</span>
               <p className="detail-value">{point.species_name}</p>
             </div>
           ) : null}
@@ -167,8 +167,8 @@ export default async function PointDetailPage({
         <div className="point-meta">
           <span className="badge">{point.classification_name}</span>
           <span className="badge">{getPointDisplayStatusLabel(point)}</span>
-          <span className="badge">{point.is_public ? "publico" : "privado"}</span>
-          <span className="badge">{point.group_is_public ? "grupo publico" : "grupo privado"}</span>
+          <span className="badge">{point.is_public ? "público" : "privado"}</span>
+          <span className="badge">{point.group_is_public ? "grupo público" : "grupo privado"}</span>
           <span className="badge">
             {point.approval_status === "approved"
               ? "aprovado"
@@ -176,7 +176,7 @@ export default async function PointDetailPage({
                 ? "pendente"
                 : "rejeitado"}
           </span>
-          {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
+          {point.has_pending_update ? <span className="badge">alteração pendente</span> : null}
           <span className="muted">Criado em {new Date(point.created_at).toLocaleString("pt-BR")}</span>
         </div>
         {point.tags?.length ? (

@@ -117,7 +117,7 @@ export async function PATCH(
         error:
           error instanceof Error
             ? error.message
-            : "Os vinculos do usuário não puderam ser processados.",
+            : "Os vínculos do usuário não puderam ser processados.",
       },
       { status: 400 },
     );
@@ -383,14 +383,14 @@ function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) 
   }
 
   if (!Array.isArray(rawMemberships)) {
-    throw new Error("Os vinculos do usuário precisam ser enviados em lista.");
+    throw new Error("Os vínculos do usuário precisam ser enviados em lista.");
   }
 
   const normalized = new Map<string, UserRole>();
 
   for (const membership of rawMemberships) {
     if (!membership || typeof membership !== "object") {
-      throw new Error("Foi encontrado um vinculo de grupo inválido.");
+      throw new Error("Foi encontrado um vínculo de grupo inválido.");
     }
 
     const groupId =
@@ -400,7 +400,7 @@ function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) 
     const role = (membership as { role?: unknown }).role;
 
     if (!groupId || !role || !allowedRoles.has(role as UserRole)) {
-      throw new Error("Foi encontrado um vinculo de grupo inválido.");
+      throw new Error("Foi encontrado um vínculo de grupo inválido.");
     }
 
     normalized.set(groupId, role as UserRole);

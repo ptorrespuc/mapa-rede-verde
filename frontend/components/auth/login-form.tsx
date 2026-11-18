@@ -130,7 +130,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
       }
 
       if (registerPassword !== registerConfirmPassword) {
-        throw new Error("A confirmacao da senha precisa ser igual a senha informada.");
+        throw new Error("A confirmação da senha precisa ser igual a senha informada.");
       }
 
       const supabase = createBrowserSupabaseClient();
@@ -197,15 +197,15 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
       setRecoveryEmail("");
       setInfoMessage(
-        "Se existir uma conta para esse e-mail, você recebera um link de recuperacao.",
+        "Se existir uma conta para esse e-mail, você recebera um link de recuperação.",
       );
       setRecoveryInfoMessage(
-        "Se existir uma conta para esse e-mail, você recebera um link de recuperacao.",
+        "Se existir uma conta para esse e-mail, você recebera um link de recuperação.",
       );
       setView("login");
     } catch (error) {
       setRecoveryErrorMessage(
-        error instanceof Error ? error.message : "Não foi possível enviar o link de recuperacao.",
+        error instanceof Error ? error.message : "Não foi possível enviar o link de recuperação.",
       );
     } finally {
       setIsSendingRecovery(false);
@@ -274,7 +274,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
                 </button>
               </p>
             ) : (
-              <p className="auth-inline-note">O cadastro publico esta fechado no momento.</p>
+              <p className="auth-inline-note">O cadastro público esta fechado no momento.</p>
             )}
           </div>
         </form>

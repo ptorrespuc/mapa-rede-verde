@@ -28,7 +28,7 @@ export default async function AdminPage({
       <section className="page-stack">
         <div className="page-header">
           <div>
-            <p className="eyebrow">Administracao</p>
+            <p className="eyebrow">Administração</p>
             <h1>Acesso restrito</h1>
           </div>
         </div>

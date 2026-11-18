@@ -635,7 +635,7 @@ export function PointsWorkspace({
 
                   <div className="point-line-badges">
                     <span className="badge">{point.approvalLabel}</span>
-                    {point.has_pending_update ? <span className="badge">alteracao pendente</span> : null}
+                    {point.has_pending_update ? <span className="badge">alteração pendente</span> : null}
                     {point.viewer_is_creator ? <span className="badge">meu</span> : null}
                   </div>
                   <PointTagBadges
@@ -689,7 +689,7 @@ export function PointsWorkspace({
               <div className="modal-header-top">
                 <div className="stack-xs">
                   <h2 className="section-title">Escolher grupo</h2>
-                  <p className="subtitle">Troque o escopo visivel da listagem.</p>
+                  <p className="subtitle">Troque o escopo visível da listagem.</p>
                 </div>
                 <button
                   aria-label="Fechar janela"
@@ -713,7 +713,7 @@ export function PointsWorkspace({
               >
                 <div className="stack-xs">
                   <strong>Todos os grupos visíveis</strong>
-                  <span className="muted">Exibe os grupos acessiveis no seu perfil atual.</span>
+                  <span className="muted">Exibe os grupos acessíveis no seu perfil atual.</span>
                 </div>
               </button>
               {visibleGroups.map((group) => (

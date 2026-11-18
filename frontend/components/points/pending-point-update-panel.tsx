@@ -45,7 +45,7 @@ export function PendingPointUpdatePanel({
   return (
     <section className="panel stack-md">
       <div className="stack-xs">
-        <h2 className="section-title">Alteracoes solicitadas</h2>
+        <h2 className="section-title">Alterações solicitadas</h2>
         <p className="subtitle">
           Compare o estado atual com os dados enviados para aprovação antes de revisar o ponto.
         </p>

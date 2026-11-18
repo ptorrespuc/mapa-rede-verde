@@ -153,7 +153,7 @@ export function PointMapPreviewTrigger({
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">
-                  <p className="eyebrow">Mapa rapido</p>
+                  <p className="eyebrow">Mapa rápido</p>
                   <h2 className="section-title">{point.title}</h2>
                   <p className="subtitle">
                     {point.group_name} | {point.classification_name}

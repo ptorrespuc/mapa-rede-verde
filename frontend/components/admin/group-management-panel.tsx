@@ -61,12 +61,12 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
         <article className="overview-card primary">
           <span className="muted">Grupos administraveis</span>
           <strong>{groups.length}</strong>
-          <span className="muted">Escopo atual do seu usuario</span>
+          <span className="muted">Escopo atual do seu usuário</span>
         </article>
         <article className="overview-card soft">
-          <span className="muted">Grupos publicos</span>
+          <span className="muted">Grupos públicos</span>
           <strong>{groups.filter((group) => group.is_public).length}</strong>
-          <span className="muted">Com vitrine publica habilitada</span>
+          <span className="muted">Com vitrine pública habilitada</span>
         </article>
         <article className="overview-card earth">
           <span className="muted">Grupos privados</span>
@@ -76,7 +76,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
         <article className="overview-card primary">
           <span className="muted">Multigrupo</span>
           <strong>Liberado</strong>
-          <span className="muted">Um usuario pode participar de varios grupos</span>
+          <span className="muted">Um usuário pode participar de vários grupos</span>
         </article>
       </div>
 
@@ -84,7 +84,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
         <section className="panel stack-md">
           <div className="panel-header">
             <div className="stack-xs">
-              <h2 className="section-title">Associar usuario ao grupo</h2>
+              <h2 className="section-title">Associar usuário ao grupo</h2>
               <p className="subtitle">
                 Use o `public.users.id` para adicionar o usuário a outro grupo.
               </p>
@@ -115,7 +115,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
             </div>
 
             <div className="field">
-              <label htmlFor="group-user-id">ID publico do usuario</label>
+              <label htmlFor="group-user-id">ID público do usuário</label>
               <input
                 id="group-user-id"
                 value={userId}
@@ -157,12 +157,12 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
               <h2 className="section-title">Regras deste painel</h2>
               <p className="subtitle">Resumo operacional inspirado no fluxo do Plantnet.</p>
             </div>
-            <span className="badge">Guia rapido</span>
+            <span className="badge">Guia rápido</span>
           </div>
 
           <div className="surface-subtle stack-sm">
-            <span className="muted">1. O usuario precisa existir em `public.users`.</span>
-            <span className="muted">2. O mesmo usuario pode entrar em varios grupos.</span>
+            <span className="muted">1. O usuário precisa existir em `public.users`.</span>
+            <span className="muted">2. O mesmo usuário pode entrar em vários grupos.</span>
             <span className="muted">
               3. `group_admin` administra, `group_approver` aprova pontos e `group_collaborator`
               opera como colaborador.

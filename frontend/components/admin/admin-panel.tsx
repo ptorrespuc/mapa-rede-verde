@@ -1008,7 +1008,7 @@ export function AdminPanel({
                     </span>
                   </div>
                   <div className="button-row">
-                    <span className="badge">{group.is_public ? "publico" : "privado"}</span>
+                    <span className="badge">{group.is_public ? "público" : "privado"}</span>
                     {group.accepts_point_collaboration ? (
                       <span className="badge">aceita colaboracao</span>
                     ) : null}
@@ -1037,7 +1037,7 @@ export function AdminPanel({
       <section className="list-card stack-md">
         <div className="panel-header">
           <div className="stack-xs">
-            <h2 className="section-title">Usuarios</h2>
+            <h2 className="section-title">Usuários</h2>
             <p className="subtitle">
               {canEditUserIdentity
                 ? "Listagem de usuários cadastrados, com grupos e papéis."
@@ -1144,7 +1144,7 @@ export function AdminPanel({
       <section className="list-card">
         <div className="panel-header">
           <div className="stack-xs">
-            <h2 className="section-title">Classificacoes cadastradas</h2>
+            <h2 className="section-title">Classificações cadastradas</h2>
             <p className="subtitle">Cor, slug e uso de especies podem ser ajustados por modal.</p>
           </div>
           <div className="button-row">
@@ -1229,7 +1229,7 @@ export function AdminPanel({
         <div className="panel-header">
           <div className="stack-xs">
             <h2 className="section-title">Tipos de evento</h2>
-            <p className="subtitle">A criacao e a edicao ficam na mesma sobreposicao.</p>
+            <p className="subtitle">A criação e a edição ficam na mesma sobreposição.</p>
           </div>
           <div className="button-row">
             <span className="badge">{eventTypes.length}</span>
@@ -1273,7 +1273,7 @@ export function AdminPanel({
       <section className="list-card stack-md">
         <div className="panel-header">
           <div className="stack-xs">
-            <h2 className="section-title">Catalogo de tags</h2>
+            <h2 className="section-title">Catálogo de tags</h2>
             <p className="subtitle">
               Visão global para buscar, revisar e manter as tags de todas as classificações.
             </p>
@@ -1297,7 +1297,7 @@ export function AdminPanel({
             />
           </div>
           <div className="field">
-            <label htmlFor="tag-classification-filter">Classificacao</label>
+            <label htmlFor="tag-classification-filter">Classificação</label>
             <select
               id="tag-classification-filter"
               onChange={(event) => setTagClassificationFilterId(event.target.value)}
@@ -1362,8 +1362,8 @@ export function AdminPanel({
       <section className="list-card stack-md">
         <div className="panel-header">
           <div className="stack-xs">
-            <h2 className="section-title">Especies cadastradas</h2>
-            <p className="subtitle">Catalogo com criacao e alteracao por modal.</p>
+            <h2 className="section-title">Espécies cadastradas</h2>
+            <p className="subtitle">Catálogo com criação e alteração por modal.</p>
           </div>
           <div className="button-row">
             <span className="badge">
@@ -1380,7 +1380,7 @@ export function AdminPanel({
 
         <div className="input-grid two">
           <div className="field">
-            <label htmlFor="species-filter-text">Buscar especie</label>
+            <label htmlFor="species-filter-text">Buscar espécie</label>
             <input
               id="species-filter-text"
               onChange={(event) => setSpeciesFilterText(event.target.value)}
@@ -1668,7 +1668,7 @@ export function AdminPanel({
                   <div className="stack-xs">
                     <strong>Vinculos com grupos</strong>
                     <span className="muted">
-                      Ajuste os papéis do usuário. Sem vinculos, ele continua existindo mas não administra grupos.
+                      Ajuste os papéis do usuário. Sem vínculos, ele continua existindo mas não administra grupos.
                     </span>
                   </div>
                   {editableGroups.length ? (
@@ -1779,7 +1779,7 @@ export function AdminPanel({
                 />
               </div>
               <div className="field">
-                <label htmlFor="classification-species">Usa catalogo de especies?</label>
+                <label htmlFor="classification-species">Usa catálogo de espécies?</label>
                 <select
                   id="classification-species"
                   onChange={(event) =>
@@ -1883,7 +1883,7 @@ export function AdminPanel({
         {modalSection === "tags" ? (
           <>
             <div className="field">
-              <label htmlFor="tag-classification">Classificacao</label>
+              <label htmlFor="tag-classification">Classificação</label>
               <select
                 id="tag-classification"
                 disabled={Boolean(tagModalReturnClassificationId)}
@@ -1926,7 +1926,7 @@ export function AdminPanel({
             </div>
 
             <div className="field">
-              <label htmlFor="tag-description">Descricao</label>
+              <label htmlFor="tag-description">Descrição</label>
               <textarea
                 id="tag-description"
                 onChange={(event) => setTagDescription(event.target.value)}
@@ -1954,7 +1954,7 @@ export function AdminPanel({
         {modalSection === "event-types" ? (
           <>
             <div className="field">
-              <label htmlFor="event-type-classification">Classificacao</label>
+              <label htmlFor="event-type-classification">Classificação</label>
               <select
                 id="event-type-classification"
                 onChange={(event) => setEventTypeClassificationId(event.target.value)}
@@ -2138,11 +2138,11 @@ export function AdminPanel({
     <section className="page-stack">
       <div className="page-header">
         <div>
-          <p className="eyebrow">Administracao</p>
+          <p className="eyebrow">Administração</p>
           <h1>{canManageGlobalCatalogs ? "Gestão da plataforma" : "Gestão dos grupos"}</h1>
           <p className="subtitle">
             {canManageGlobalCatalogs
-              ? "A listagem fica visível o tempo todo; criação e edição abrem em sobreposicao."
+              ? "A listagem fica visível o tempo todo; criação e edição abrem em sobreposição."
               : "Gerencie os grupos sob sua responsabilidade e os papéis dos usuários vinculados a eles."}
           </p>
         </div>

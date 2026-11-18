@@ -597,12 +597,9 @@ export function MapDashboard({
   }
 
   function centerPointOnMap(point: PointRecord) {
-    if (focusedPointId === point.id) {
-      mapRef.current?.focusPoint(point.id);
-      return;
-    }
-
+    // Pedido explicito do usuario: centraliza e aproxima no ponto.
     setFocusedPointId(point.id);
+    mapRef.current?.focusPoint(point.id);
   }
 
   function handleMapCenterChange(nextCenter: { latitude: number; longitude: number }) {
@@ -1054,7 +1051,7 @@ export function MapDashboard({
               Meus pontos
             </button>
           ) : null}
-          {hasAdvancedFiltersActive ? <span className="badge">Filtros avancados ativos</span> : null}
+          {hasAdvancedFiltersActive ? <span className="badge">Filtros avançados ativos</span> : null}
         </div>
       </section>
 
@@ -1217,7 +1214,7 @@ export function MapDashboard({
                   />
                 </div>
                 <div className="point-line-metric">
-                  <span className="muted">Distancia</span>
+                  <span className="muted">Distância</span>
                   <strong className="point-line-distance">{formatDistance(distance)}</strong>
                 </div>
                 <div className="point-line-actions">
@@ -1323,7 +1320,7 @@ export function MapDashboard({
               <div className="modal-header-top">
                 <div className="stack-xs">
                   <h2 className="section-title">Escolher grupo</h2>
-                  <p className="subtitle">Troque o escopo visivel do mapa.</p>
+                  <p className="subtitle">Troque o escopo visível do mapa.</p>
                 </div>
                 <button
                   aria-label="Fechar janela"
@@ -1347,7 +1344,7 @@ export function MapDashboard({
               >
                 <div className="stack-xs">
                   <strong>Todos os grupos visíveis</strong>
-                  <span className="muted">Exibe os grupos publicos ou acessiveis no seu perfil.</span>
+                  <span className="muted">Exibe os grupos públicos ou acessíveis no seu perfil.</span>
                 </div>
               </button>
               {visibleGroups.map((group) => (
@@ -1379,7 +1376,7 @@ export function MapDashboard({
             <div className="modal-header">
               <div className="modal-header-top">
                 <div className="stack-xs">
-                  <h2 className="section-title">Filtros avancados e busca</h2>
+                  <h2 className="section-title">Filtros avançados e busca</h2>
                   <p className="subtitle">
                     Ajuste classificações, refine por espécies e tags e localize um endereço no mapa.
                   </p>

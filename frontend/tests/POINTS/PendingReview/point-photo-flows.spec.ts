@@ -20,7 +20,7 @@ test.describe("fluxo de fotos do ponto", () => {
     ).toBeVisible();
     await expect(page.getByText("Fotos atuais", { exact: true })).toBeVisible();
     await expect(page.getByText("Foto atual aprovada")).toBeVisible();
-    await expect(page.getByText("Voce ainda pode adicionar 2 foto(s).")).toBeVisible();
+    await expect(page.getByText("Você ainda pode adicionar 2 foto(s).")).toBeVisible();
 
     await page.getByRole("button", { name: "Adicionar fotos" }).click();
     await page.locator("#point-photo").setInputFiles([
@@ -30,7 +30,7 @@ test.describe("fluxo de fotos do ponto", () => {
     ]);
 
     await expect(
-      page.getByText("Com as fotos atuais, voce pode adicionar no maximo 2 nova(s) foto(s)."),
+      page.getByText("Com as fotos atuais, você pode adicionar no máximo 2 nova(s) foto(s)."),
     ).toBeVisible();
     await expect(page.locator(".media-upload-card")).toHaveCount(2);
   });
@@ -142,7 +142,7 @@ test.describe("fluxo de fotos do ponto", () => {
     await page.goto("/test-harness/pending-review");
 
     await expect(
-      page.getByRole("heading", { name: "Alteracao pendente", exact: true }),
+      page.getByRole("heading", { name: "Alteração pendente", exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Visualizar diferencas" })).toBeVisible();
     await expect(page.getByText("Classificacao")).toBeVisible();
@@ -150,7 +150,7 @@ test.describe("fluxo de fotos do ponto", () => {
     await expect(page.getByText("Nova foto 1")).toBeVisible();
     await expect(page.getByText("Nova foto 2")).toBeVisible();
 
-    await page.getByRole("button", { name: "Visualizar alteracao" }).click();
+    await page.getByRole("button", { name: "Visualizar alteração" }).click();
 
     await expect(page.getByText("Plantio em acompanhamento")).toBeVisible();
     await expect(page.getByText("novas fotos serao adicionadas")).toBeVisible();

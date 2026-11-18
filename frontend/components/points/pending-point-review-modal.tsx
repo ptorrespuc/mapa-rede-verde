@@ -81,8 +81,8 @@ export function PendingPointReviewModal({
         <div className="modal-header">
           <div className="modal-header-top">
             <div className="stack-xs">
-              <p className="eyebrow">Revisao da alteracao</p>
-              <h2 className="section-title">Alteracao pendente</h2>
+              <p className="eyebrow">Revisão da alteração</p>
+              <h2 className="section-title">Alteração pendente</h2>
               <p className="subtitle">
                 Veja como o ponto ficaria e compare os dados antes de aprovar ou rejeitar.
               </p>
@@ -100,7 +100,7 @@ export function PendingPointReviewModal({
 
         {isLoading ? (
           <div className="surface-subtle">
-            <span className="muted">Carregando alteracao pendente...</span>
+            <span className="muted">Carregando alteração pendente...</span>
           </div>
         ) : errorMessage ? (
           <div className="surface-subtle stack-xs">
@@ -211,7 +211,7 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
             </span>
           ) : null}
           <div>
-            <h3 className="section-title">Fotos relacionadas a alteracao</h3>
+            <h3 className="section-title">Fotos relacionadas a alteração</h3>
             <PhotoGrid media={summary.resultingMedia} />
           </div>
         </div>
@@ -265,7 +265,7 @@ function DiffModeContent({ summary }: { summary: PendingPointReviewSummary }) {
                 <PhotoGrid media={summary.currentMedia} />
               ) : (
                 <div className="surface-subtle">
-                  <span className="muted">Este ponto nao possui fotos atuais.</span>
+                  <span className="muted">Este ponto não possui fotos atuais.</span>
                 </div>
               )}
             </div>
