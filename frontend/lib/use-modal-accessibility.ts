@@ -25,6 +25,14 @@ export function useModalAccessibility<T extends HTMLElement>(
   onClose: () => void,
 ) {
   const containerRef = useRef<T | null>(null);
+  // Guarda o onClose mais recente sem reexecutar o efeito: os chamadores passam
+  // funcoes novas a cada render, e reexecutar o efeito devolvia o foco ao
+  // primeiro campo do modal a cada tecla digitada.
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen || typeof document === "undefined") {
@@ -56,7 +64,7 @@ export function useModalAccessibility<T extends HTMLElement>(
 
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -99,7 +107,7 @@ export function useModalAccessibility<T extends HTMLElement>(
       document.body.style.overflow = previousOverflow;
       previousActiveElement?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return containerRef;
 }
