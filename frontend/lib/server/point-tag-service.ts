@@ -45,7 +45,7 @@ export async function validatePointTagSelection(options: {
   const invalidTagIds = normalizedTagIds.filter((tagId) => !availableTagIds.has(tagId));
 
   if (invalidTagIds.length) {
-    throw new ApiRouteError("As tags selecionadas nao pertencem a esta classificacao.", {
+    throw new ApiRouteError("As tags selecionadas não pertencem a esta classificação.", {
       status: 400,
       code: "INVALID_POINT_TAG_SELECTION",
     });

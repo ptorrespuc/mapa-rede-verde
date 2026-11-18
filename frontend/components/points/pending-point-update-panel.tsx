@@ -47,7 +47,7 @@ export function PendingPointUpdatePanel({
       <div className="stack-xs">
         <h2 className="section-title">Alteracoes solicitadas</h2>
         <p className="subtitle">
-          Compare o estado atual com os dados enviados para aprovacao antes de revisar o ponto.
+          Compare o estado atual com os dados enviados para aprovação antes de revisar o ponto.
         </p>
         {point.pending_update_requested_at ? (
           <span className="muted">
@@ -151,7 +151,7 @@ function buildPendingChangeItems(
 
   if (pendingClassificationId && pendingClassificationId !== point.classification_id) {
     changes.push({
-      label: "Classificacao",
+      label: "Classificação",
       currentValue: point.classification_name,
       nextValue:
         classificationMap.get(pendingClassificationId) ?? "Classificacao selecionada",
@@ -161,7 +161,7 @@ function buildPendingChangeItems(
   const pendingTitle = normalizeOptionalText(pendingData.title);
   if (pendingTitle !== null && pendingTitle !== point.title) {
     changes.push({
-      label: "Titulo",
+      label: "Título",
       currentValue: point.title,
       nextValue: pendingTitle,
     });
@@ -174,7 +174,7 @@ function buildPendingChangeItems(
 
     if (pendingSpeciesId !== currentSpeciesId) {
       changes.push({
-        label: "Especie",
+        label: "Espécie",
         currentValue: getSpeciesLabel(point.species_id, point.species_name, speciesMap),
         nextValue: getSpeciesLabel(pendingSpeciesId, null, speciesMap),
       });
@@ -185,9 +185,9 @@ function buildPendingChangeItems(
   const currentDescription = normalizeNullableText(point.description);
   if (pendingDescription !== null && pendingDescription !== currentDescription) {
     changes.push({
-      label: "Descricao",
-      currentValue: currentDescription ?? "Sem descricao",
-      nextValue: pendingDescription ?? "Sem descricao",
+      label: "Descrição",
+      currentValue: currentDescription ?? "Sem descrição",
+      nextValue: pendingDescription ?? "Sem descrição",
     });
   }
 
@@ -203,7 +203,7 @@ function buildPendingChangeItems(
       Math.abs(pendingLatitude - point.latitude) > 0.0000001)
   ) {
     changes.push({
-      label: "Posicao no mapa",
+      label: "Posição no mapa",
       currentValue: formatCoordinates(point.latitude, point.longitude),
       nextValue: formatCoordinates(pendingLatitude, pendingLongitude),
     });
@@ -215,8 +215,8 @@ function buildPendingChangeItems(
   ) {
     changes.push({
       label: "Visibilidade",
-      currentValue: point.is_public ? "Publico" : "Privado",
-      nextValue: pendingData.is_public ? "Publico" : "Privado",
+      currentValue: point.is_public ? "Público" : "Privado",
+      nextValue: pendingData.is_public ? "Público" : "Privado",
     });
   }
 
@@ -229,7 +229,7 @@ function getSpeciesLabel(
   speciesMap: Map<string, string>,
 ) {
   if (!speciesId) {
-    return "Sem especie";
+    return "Sem espécie";
   }
 
   return speciesMap.get(speciesId) ?? fallbackName ?? "Especie selecionada";

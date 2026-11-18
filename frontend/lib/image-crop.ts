@@ -2,7 +2,7 @@ function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Nao foi possivel carregar a imagem."));
+    image.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
     image.src = source;
   });
 }
@@ -11,7 +11,7 @@ export function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Nao foi possivel ler a imagem selecionada."));
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem selecionada."));
     reader.readAsDataURL(file);
   });
 }
@@ -43,7 +43,7 @@ export async function cropImageToSquare(
   const context = canvas.getContext("2d");
 
   if (!context) {
-    throw new Error("Nao foi possivel preparar o recorte da imagem.");
+    throw new Error("Não foi possível preparar o recorte da imagem.");
   }
 
   context.drawImage(image, sourceX, sourceY, cropSide, cropSide, 0, 0, size, size);
@@ -52,7 +52,7 @@ export async function cropImageToSquare(
     canvas.toBlob(
       (nextBlob) => {
         if (!nextBlob) {
-          reject(new Error("Nao foi possivel gerar a imagem recortada."));
+          reject(new Error("Não foi possível gerar a imagem recortada."));
           return;
         }
 

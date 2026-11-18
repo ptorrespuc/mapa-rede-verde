@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackToMapLink } from "@/components/map/back-to-map-link";
 import { DeletePointButton } from "@/components/points/delete-point-button";
 import { PointMapPreviewTrigger } from "@/components/points/point-map-preview-trigger";
 import { PointReviewActions } from "@/components/points/point-review-actions";
@@ -78,13 +79,11 @@ export default async function PointDetailPage({
         <div className="button-row">
           {point.viewer_can_manage || point.viewer_can_request_update ? (
             <Link className="button-secondary" href={`/points/${point.id}/edit`}>
-              {point.viewer_can_manage ? "Editar ponto" : "Solicitar alteracao"}
+              {point.viewer_can_manage ? "Editar ponto" : "Solicitar alteração"}
             </Link>
           ) : null}
           {point.viewer_can_delete ? <DeletePointButton pointId={point.id} /> : null}
-          <Link className="button-ghost" href="/map">
-            Voltar ao mapa
-          </Link>
+          <BackToMapLink pointId={point.id}>Ver no mapa</BackToMapLink>
         </div>
       </div>
 
@@ -119,13 +118,13 @@ export default async function PointDetailPage({
           <div className="surface-subtle stack-xs">
             <strong>
               {point.approval_status === "pending"
-                ? "Ponto aguardando aprovacao"
+                ? "Ponto aguardando aprovação"
                 : "Ponto rejeitado"}
             </strong>
             <span className="muted">
               {point.approval_status === "pending"
-                ? "Este registro ainda nao aparece no mapa publico ate ser revisado."
-                : "Ajuste os dados e envie novamente para aprovacao."}
+                ? "Este registro ainda não aparece no mapa público até ser revisado."
+                : "Ajuste os dados e envie novamente para aprovação."}
             </span>
             {point.viewer_can_approve && isPointPendingForReview(point) ? (
               <PointReviewActions
@@ -137,9 +136,9 @@ export default async function PointDetailPage({
         ) : null}
         {point.has_pending_update ? (
           <div className="surface-subtle stack-xs">
-            <strong>Alteracao pendente</strong>
+            <strong>Alteração pendente</strong>
             <span className="muted">
-              Existe uma solicitacao de alteracao aguardando revisao deste ponto.
+              Existe uma solicitação de alteração aguardando revisão deste ponto.
             </span>
             {point.viewer_can_approve &&
             point.approval_status === "approved" &&
@@ -188,11 +187,11 @@ export default async function PointDetailPage({
         ) : null}
         {point.viewer_can_manage || point.viewer_can_request_update ? (
           <div className="surface-subtle stack-xs">
-            <strong>Alterar classificacao</strong>
+            <strong>Alterar classificação</strong>
             <span className="muted">
               {point.viewer_can_manage
-                ? "Use Editar ponto para mudar a classificacao. A linha do tempo registra a reclassificacao automaticamente."
-                : "Use Solicitar alteracao para pedir uma nova classificacao. Depois da aprovacao, a linha do tempo registra a reclassificacao automaticamente."}
+                ? "Use Editar ponto para mudar a classificação. A linha do tempo registra a reclassificacao automaticamente."
+                : "Use Solicitar alteração para pedir uma nova classificação. Depois da aprovação, a linha do tempo registra a reclassificacao automaticamente."}
             </span>
           </div>
         ) : null}

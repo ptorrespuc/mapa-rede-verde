@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   if (!group) {
     return NextResponse.json(
-      { error: "Nao ha grupos publicos aceitando colaboracao no momento." },
+      { error: "Não ha grupos públicos aceitando colaboracao no momento." },
       { status: 403 },
     );
   }
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json(
-      { error: "Configuracao de autenticacao publica ausente." },
+      { error: "Configuracao de autenticacao pública ausente." },
       { status: 500 },
     );
   }
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
   if (authError) {
     return NextResponse.json(
-      { error: authError.message ?? "Nao foi possivel criar o usuario." },
+      { error: authError.message ?? "Não foi possível criar o usuário." },
       { status: 400 },
     );
   }

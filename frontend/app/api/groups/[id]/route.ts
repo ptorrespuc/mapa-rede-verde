@@ -19,7 +19,7 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const contentType = request.headers.get("content-type") ?? "";
@@ -31,7 +31,7 @@ export async function PATCH(
       : await parseJsonGroupPatch(request);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Payload de atualizacao invalido." },
+      { error: error instanceof Error ? error.message : "Payload de atualização inválido." },
       { status: 400 },
     );
   }
@@ -140,7 +140,7 @@ export async function PATCH(
           error:
             error instanceof Error
               ? error.message
-              : "Nao foi possivel salvar a logo do grupo.",
+              : "Não foi possível salvar a logo do grupo.",
         },
         { status: 400 },
       );
@@ -169,7 +169,7 @@ export async function PATCH(
     .find((item) => item.id === id);
 
   if (!group) {
-    return NextResponse.json({ error: "Grupo nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
   }
 
   return NextResponse.json(group);
@@ -235,7 +235,7 @@ function normalizePendingLimit(value: unknown) {
         : Number.NaN;
 
   if (Number.isNaN(parsed)) {
-    throw new Error("O limite de pendencias por colaborador e invalido.");
+    throw new Error("O limite de pendencias por colaborador e inválido.");
   }
 
   return Math.max(1, Math.floor(parsed));
@@ -251,7 +251,7 @@ function validateLogoFile(file: File) {
   }
 
   if (file.size > MAX_LOGO_FILE_SIZE) {
-    throw new Error("A logo pode ter no maximo 5 MB.");
+    throw new Error("A logo pode ter no máximo 5 MB.");
   }
 }
 

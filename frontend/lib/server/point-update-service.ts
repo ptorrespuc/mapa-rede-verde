@@ -60,7 +60,7 @@ export async function parsePointPatchRequest(request: Request): Promise<ParsedPo
       : await parseJsonPointPatch(request);
   } catch (error) {
     throw new ApiRouteError(
-      error instanceof Error ? error.message : "Payload de atualizacao invalido.",
+      error instanceof Error ? error.message : "Payload de atualização inválido.",
       {
         status: 400,
         code: "INVALID_POINT_UPDATE_PAYLOAD",
@@ -108,7 +108,7 @@ export async function updatePointWithPendingMedia(options: {
     currentPointMedia.length + parsed.photos.length > 3
   ) {
     throw new ApiRouteError(
-      "O ponto pode ter no maximo 3 fotos. Remova alguma foto atual ou substitua o conjunto.",
+      "O ponto pode ter no máximo 3 fotos. Remova alguma foto atual ou substitua o conjunto.",
       {
         status: 400,
         code: "POINT_MEDIA_LIMIT_EXCEEDED",
@@ -138,7 +138,7 @@ export async function updatePointWithPendingMedia(options: {
   if (error) {
     if (isGroupChange && isMissingGroupUpdateSupport(error.message)) {
       throw new ApiRouteError(
-        "A troca de grupo ainda nao esta habilitada no banco. Aplique a migration 202603130001_point_group_reassignment.sql e tente novamente.",
+        "A troca de grupo ainda não esta habilitada no banco. Aplique a migration 202603130001_point_group_reassignment.sql e tente novamente.",
         {
           status: 400,
           code: "POINT_GROUP_REASSIGNMENT_SCHEMA_OUTDATED",
@@ -156,7 +156,7 @@ export async function updatePointWithPendingMedia(options: {
   const updatedPoint = (data as PointRecord[] | null)?.[0];
 
   if (!updatedPoint) {
-    throw new ApiRouteError("Ponto nao encontrado.", {
+    throw new ApiRouteError("Ponto não encontrado.", {
       status: 404,
       code: "POINT_NOT_FOUND",
     });
@@ -358,7 +358,7 @@ async function parseJsonPointPatch(request: Request): Promise<ParsedPointPatch> 
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    throw new Error("Payload de atualizacao invalido.");
+    throw new Error("Payload de atualização inválido.");
   }
 
   const payload = body as Record<string, unknown>;

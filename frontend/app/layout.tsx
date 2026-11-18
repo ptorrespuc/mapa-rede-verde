@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Mapa Rede Verde",
-  description: "Gestao geoambiental com grupos, pontos georreferenciados e historico operacional.",
+  description: "Gestão geoambiental com grupos, pontos georreferenciados e histórico operacional.",
 };
 
 export default function RootLayout({

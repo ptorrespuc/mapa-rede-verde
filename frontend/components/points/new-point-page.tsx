@@ -41,22 +41,22 @@ export function NewPointPage({
         scope: `/points/${point.id}`,
         title:
           point.approval_status === "pending"
-            ? "Ponto enviado para aprovacao"
+            ? "Ponto enviado para aprovação"
             : "Ponto criado com sucesso",
         message:
           point.approval_status === "pending"
-            ? "Aguarde a revisao do grupo para que o registro fique disponivel para todos os perfis com acesso."
-            : "O ponto foi salvo e ja pode ser consultado no detalhe completo.",
+            ? "Aguarde a revisão do grupo para que o registro fique disponível para todos os perfis com acesso."
+            : "O ponto foi salvo e já pode ser consultado no detalhe completo.",
       });
       toast.success(
         point.approval_status === "pending"
-          ? "Ponto enviado para aprovacao."
+          ? "Ponto enviado para aprovação."
           : "Ponto criado com sucesso.",
       );
       router.push(`/points/${point.id}`);
       router.refresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel criar o ponto.";
+      const message = error instanceof Error ? error.message : "Não foi possível criar o ponto.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -70,7 +70,7 @@ export function NewPointPage({
             <p className="eyebrow">Novo ponto</p>
             <h1>Sem grupos gerenciaveis</h1>
             <p className="subtitle">
-              Para criar pontos, seu usuario precisa estar associado a pelo menos um grupo.
+              Para criar pontos, seu usuário precisa estar associado a pelo menos um grupo.
             </p>
           </div>
         </div>
@@ -84,9 +84,9 @@ export function NewPointPage({
         <div className="page-header">
           <div>
             <p className="eyebrow">Novo ponto</p>
-            <h1>Sem classificacoes cadastradas</h1>
+            <h1>Sem classificações cadastradas</h1>
             <p className="subtitle">
-              O superusuario precisa cadastrar ao menos uma classificacao antes de criar pontos.
+              O superusuário precisa cadastrar ao menos uma classificação antes de criar pontos.
             </p>
           </div>
         </div>

@@ -14,7 +14,7 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const { data: isSuperAdmin, error: superAdminError } = await supabase.rpc(
@@ -27,7 +27,7 @@ export async function PATCH(
 
   if (!isSuperAdmin) {
     return NextResponse.json(
-      { error: "Apenas superadministradores podem alterar especies." },
+      { error: "Apenas superadministradores podem alterar espécies." },
       { status: 403 },
     );
   }
@@ -35,7 +35,7 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Payload de atualizacao invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de atualização inválido." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = {};
@@ -77,7 +77,7 @@ export async function PATCH(
   const species = ((rows ?? []) as SpeciesRecord[]).find((item) => item.id === id);
 
   if (!species) {
-    return NextResponse.json({ error: "Especie nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Espécie não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json(species);

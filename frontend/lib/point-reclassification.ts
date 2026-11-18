@@ -16,19 +16,19 @@ export function buildReclassificationEventDescription(
   nextClassificationName: string,
   preservePreviousState: boolean,
 ) {
-  const summary = `Classificacao alterada de ${previousPoint.classification_name} para ${nextClassificationName}.`;
+  const summary = `Classificação alterada de ${previousPoint.classification_name} para ${nextClassificationName}.`;
 
   if (!preservePreviousState) {
     return summary;
   }
 
   const details = [
-    `Titulo anterior: ${previousPoint.title}`,
-    previousPoint.species_name ? `Especie anterior: ${previousPoint.species_name}` : null,
+    `Título anterior: ${previousPoint.title}`,
+    previousPoint.species_name ? `Espécie anterior: ${previousPoint.species_name}` : null,
     previousPoint.description?.trim()
-      ? `Descricao anterior: ${previousPoint.description.trim()}`
+      ? `Descrição anterior: ${previousPoint.description.trim()}`
       : null,
-    `Posicao anterior: ${previousPoint.latitude.toFixed(6)}, ${previousPoint.longitude.toFixed(6)}`,
+    `Posição anterior: ${previousPoint.latitude.toFixed(6)}, ${previousPoint.longitude.toFixed(6)}`,
   ].filter((item): item is string => Boolean(item));
 
   return `${summary}\n\nEstado anterior preservado:\n- ${details.join("\n- ")}`;

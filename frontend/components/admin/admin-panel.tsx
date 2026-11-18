@@ -69,11 +69,11 @@ interface UserFormSeed {
 
 const SECTION_OPTIONS: Array<{ id: AdminSection; label: string }> = [
   { id: "groups", label: "Grupos" },
-  { id: "users", label: "Usuarios" },
-  { id: "classifications", label: "Classificacoes" },
+  { id: "users", label: "Usuários" },
+  { id: "classifications", label: "Classificações" },
   { id: "tags", label: "Tags" },
   { id: "event-types", label: "Tipos de evento" },
-  { id: "species", label: "Especies" },
+  { id: "species", label: "Espécies" },
 ];
 
 function sortByLocale<T>(items: T[], selector: (item: T) => string) {
@@ -321,7 +321,7 @@ export function AdminPanel({
     if (modalSection === "classifications") return `${action} classificacao`;
     if (modalSection === "tags") return `${action} tag`;
     if (modalSection === "event-types") return `${action} tipo de evento`;
-    return `${action} especie`;
+    return `${action} espécie`;
   }, [modalMode, modalSection]);
 
   useEffect(() => {
@@ -718,7 +718,7 @@ export function AdminPanel({
     try {
       if (modalSection === "groups") {
         if (modalMode === "create" && !canCreateGroups) {
-          throw new Error("Voce nao pode criar grupos.");
+          throw new Error("Você não pode criar grupos.");
         }
 
         if (modalMode === "create") {
@@ -755,7 +755,7 @@ export function AdminPanel({
 
       if (modalSection === "users") {
         if (modalMode === "create" && !canInviteUsers) {
-          throw new Error("Voce nao pode criar usuarios.");
+          throw new Error("Você não pode criar usuários.");
         }
 
         if (modalMode === "create") {
@@ -821,7 +821,7 @@ export function AdminPanel({
               (item) => item.name,
             ),
           );
-          toast.success("Usuario atualizado com sucesso.");
+          toast.success("Usuário atualizado com sucesso.");
         }
       }
 
@@ -836,7 +836,7 @@ export function AdminPanel({
           setClassifications((current) =>
             sortByLocale([...current, created], (item) => item.name),
           );
-          toast.success("Classificacao criada com sucesso.");
+          toast.success("Classificação criada com sucesso.");
           setActiveSection("classifications");
           setModalSection("classifications");
           setModalMode("edit");
@@ -872,7 +872,7 @@ export function AdminPanel({
               ),
             ),
           );
-          toast.success("Classificacao atualizada com sucesso.");
+          toast.success("Classificação atualizada com sucesso.");
         }
       }
 
@@ -934,7 +934,7 @@ export function AdminPanel({
           setSpeciesCatalog((current) =>
             sortByLocale([...current, created], (item) => item.common_name),
           );
-          toast.success("Especie criada com sucesso.");
+          toast.success("Espécie criada com sucesso.");
         } else if (editingId) {
           const updated = await apiClient.updateSpecies(editingId, {
             commonName: speciesCommonName,
@@ -948,13 +948,13 @@ export function AdminPanel({
               (item) => item.common_name,
             ),
           );
-          toast.success("Especie atualizada com sucesso.");
+          toast.success("Espécie atualizada com sucesso.");
         }
       }
 
       closeModal();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel salvar.";
+      const message = error instanceof Error ? error.message : "Não foi possível salvar.";
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -970,8 +970,8 @@ export function AdminPanel({
             <h2 className="section-title">Grupos cadastrados</h2>
             <p className="subtitle">
               {canCreateGroups
-                ? "A listagem fica limpa e as alteracoes abrem por modal."
-                : "Voce pode visualizar os grupos em que participa, mas so edita os que administra."}
+                ? "A listagem fica limpa e as alterações abrem por modal."
+                : "Você pode visualizar os grupos em que participa, mas só edita os que administra."}
             </p>
           </div>
           <div className="button-row">
@@ -1040,8 +1040,8 @@ export function AdminPanel({
             <h2 className="section-title">Usuarios</h2>
             <p className="subtitle">
               {canEditUserIdentity
-                ? "Listagem de usuarios cadastrados, com grupos e papeis."
-                : "Usuarios vinculados aos grupos que voce administra."}
+                ? "Listagem de usuários cadastrados, com grupos e papéis."
+                : "Usuários vinculados aos grupos que você administra."}
             </p>
           </div>
           <div className="button-row">
@@ -1053,14 +1053,14 @@ export function AdminPanel({
                 onClick={() => openCreateModal("users")}
                 type="button"
               >
-                Novo usuario
+                Novo usuário
               </button>
             ) : null}
           </div>
         </div>
 
         {canInviteUsers && !canCreateUsers
-          ? renderEmpty("Crie um grupo antes de cadastrar o primeiro usuario.")
+          ? renderEmpty("Crie um grupo antes de cadastrar o primeiro usuário.")
           : null}
 
         {users.length ? (
@@ -1091,7 +1091,7 @@ export function AdminPanel({
                       ? `${user.preferred_group_name} (@${user.preferred_group_code})`
                       : user.preferred_group_hidden
                         ? "definido em outro grupo fora do seu escopo."
-                        : "nao definido."}
+                        : "não definido."}
                   </span>
                   {user.hidden_membership_count > 0 ? (
                     <span className="muted">
@@ -1114,24 +1114,24 @@ export function AdminPanel({
             ))}
           </div>
         ) : (
-          renderEmpty("Nenhum usuario cadastrado ainda.")
+          renderEmpty("Nenhum usuário cadastrado ainda.")
         )}
 
         {canInviteUsers && generatedCredentials ? (
           <div className="surface-subtle stack-xs">
-            <strong>Ultimo usuario criado</strong>
+            <strong>Último usuário criado</strong>
             <span className="muted">ID publico: {generatedCredentials.publicUserId}</span>
             <span className="muted">Convite enviado para: {generatedCredentials.email}</span>
             {generatedCredentials.inviteSent ? (
               <span className="muted">
-                O acesso so fica disponivel depois que a pessoa confirmar o link recebido.
+                O acesso só fica disponível depois que a pessoa confirmar o link recebido.
               </span>
             ) : null}
           </div>
         ) : canInviteUsers ? (
           <div className="surface-subtle">
             <span className="muted">
-              O status do ultimo convite enviado aparece aqui logo apos a criacao.
+              O status do último convite enviado aparece aqui logo após a criação.
             </span>
           </div>
         ) : null}
@@ -1154,7 +1154,7 @@ export function AdminPanel({
               onClick={() => openCreateModal("classifications")}
               type="button"
             >
-              Nova classificacao
+              Nova classificação
             </button>
           </div>
         </div>
@@ -1181,7 +1181,7 @@ export function AdminPanel({
                   </div>
                   <div className="button-row">
                     <span className="badge">
-                      {classification.requires_species ? "usa especies" : "sem especies"} -{" "}
+                      {classification.requires_species ? "usa espécies" : "sem espécies"} -{" "}
                       {classification.event_type_count} eventos -{" "}
                       {classification.is_active ? "ativa" : "inativa"}
                     </span>
@@ -1197,7 +1197,7 @@ export function AdminPanel({
                       onClick={() => {
                         if (
                           window.confirm(
-                            "Deseja excluir esta classificacao? Se houver relacionamentos, ela sera apenas desativada.",
+                            "Deseja excluir esta classificação? Se houver relacionamentos, ela será apenas desativada.",
                           )
                         ) {
                           void handleDeleteClassification(classification.id);
@@ -1217,7 +1217,7 @@ export function AdminPanel({
                   </div>
                 </div>
               ))
-            : renderEmpty("Nenhuma classificacao cadastrada ainda.")}
+            : renderEmpty("Nenhuma classificação cadastrada ainda.")}
         </div>
       </section>
     );
@@ -1275,7 +1275,7 @@ export function AdminPanel({
           <div className="stack-xs">
             <h2 className="section-title">Catalogo de tags</h2>
             <p className="subtitle">
-              Visao global para buscar, revisar e manter as tags de todas as classificacoes.
+              Visão global para buscar, revisar e manter as tags de todas as classificações.
             </p>
           </div>
           <div className="button-row">
@@ -1331,7 +1331,7 @@ export function AdminPanel({
                       onClick={() => {
                         if (
                           window.confirm(
-                            "Deseja excluir esta tag? Se houver pontos relacionados, ela sera apenas desativada.",
+                            "Deseja excluir esta tag? Se houver pontos relacionados, ela será apenas desativada.",
                           )
                         ) {
                           void handleDeletePointTag(tag.id);
@@ -1373,7 +1373,7 @@ export function AdminPanel({
                 : ""}
             </span>
             <button className="button-secondary" onClick={() => openCreateModal("species")} type="button">
-              Nova especie
+              Nova espécie
             </button>
           </div>
         </div>
@@ -1435,8 +1435,8 @@ export function AdminPanel({
               ))
             : renderEmpty(
                 speciesCatalog.length
-                  ? "Nenhuma especie encontrada com os filtros informados."
-                  : "Nenhuma especie cadastrada ainda.",
+                  ? "Nenhuma espécie encontrada com os filtros informados."
+                  : "Nenhuma espécie cadastrada ainda.",
               )}
         </div>
       </section>
@@ -1490,7 +1490,7 @@ export function AdminPanel({
                 />
               </div>
               <span className="hint">
-                Sem espacos. Esse identificador unico e usado na URL do grupo.
+                Sem espaços. Esse identificador único e usado na URL do grupo.
               </span>
             </div>
             <div className="field">
@@ -1501,7 +1501,7 @@ export function AdminPanel({
                 value={groupIsPublic ? "public" : "private"}
               >
                 <option value="private">Privado</option>
-                <option value="public">Publico</option>
+                <option value="public">Público</option>
               </select>
             </div>
             <div className="field">
@@ -1513,7 +1513,7 @@ export function AdminPanel({
                 }
                 value={groupAcceptsPointCollaboration ? "yes" : "no"}
               >
-                <option value="no">Nao</option>
+                <option value="no">Não</option>
                 <option value="yes">Sim</option>
               </select>
             </div>
@@ -1534,7 +1534,7 @@ export function AdminPanel({
                 value={groupMaxPendingPointsPerCollaborator}
               />
               <span className="hint">
-                Limita quantos pontos pendentes o mesmo colaborador pode deixar aguardando revisao nesse grupo.
+                Limita quantos pontos pendentes o mesmo colaborador pode deixar aguardando revisão nesse grupo.
               </span>
             </div>
             <div className="field">
@@ -1548,7 +1548,7 @@ export function AdminPanel({
                 }}
               />
               <span className="hint">
-                A logo e salva em formato quadrado, conforme a pre-visualizacao acima.
+                A logo e salva em formato quadrado, conforme a pré-visualização acima.
               </span>
             </div>
           </>
@@ -1583,7 +1583,7 @@ export function AdminPanel({
                 <strong>{editingUser?.name ?? userName}</strong>
                 <span className="muted">{editingUser?.email ?? userEmail}</span>
                 <span className="muted">
-                  Dados cadastrais so podem ser alterados por superusuario.
+                  Dados cadastrais só podem ser alterados por superusuário.
                 </span>
               </div>
             )}
@@ -1611,8 +1611,8 @@ export function AdminPanel({
                   </select>
                   <span className="hint">
                     {editableGroups.length === 1
-                      ? "Como voce administra apenas um grupo, ele ja foi definido automaticamente."
-                      : "Esse grupo entra como referencia inicial do usuario no sistema."}
+                      ? "Como você administra apenas um grupo, ele já foi definido automaticamente."
+                      : "Esse grupo entra como referência inicial do usuário no sistema."}
                   </span>
                 </div>
 
@@ -1632,7 +1632,7 @@ export function AdminPanel({
                 </div>
                 <div className="surface-subtle">
                   <span className="muted">
-                    O usuario recebera um link por email para confirmar o cadastro e definir o acesso.
+                    O usuário recebera um link por email para confirmar o cadastro e definir o acesso.
                   </span>
                 </div>
               </>
@@ -1659,8 +1659,8 @@ export function AdminPanel({
                   </select>
                   <span className="hint">
                     {userPreferredGroupHidden && !userPreferredGroupDirty
-                      ? "O grupo preferencial atual esta em outro grupo fora do seu escopo. Escolha um grupo visivel para substituir essa referencia."
-                      : "O sistema usa esse grupo como referencia inicial quando nao houver outra escolha salva pelo usuario."}
+                      ? "O grupo preferencial atual esta em outro grupo fora do seu escopo. Escolha um grupo visível para substituir essa referência."
+                      : "O sistema usa esse grupo como referência inicial quando não houver outra escolha salva pelo usuário."}
                   </span>
                 </div>
 
@@ -1668,7 +1668,7 @@ export function AdminPanel({
                   <div className="stack-xs">
                     <strong>Vinculos com grupos</strong>
                     <span className="muted">
-                      Ajuste os papeis do usuario. Sem vinculos, ele continua existindo mas nao administra grupos.
+                      Ajuste os papéis do usuário. Sem vinculos, ele continua existindo mas não administra grupos.
                     </span>
                   </div>
                   {editableGroups.length ? (
@@ -1680,7 +1680,7 @@ export function AdminPanel({
                 {!canEditUserIdentity && (editingUser?.hidden_membership_count ?? 0) > 0 ? (
                   <div className="surface-subtle">
                     <span className="muted">
-                      Existem acessos em outros grupos que voce nao administra. Eles nao aparecem aqui.
+                      Existem acessos em outros grupos que você não administra. Eles não aparecem aqui.
                     </span>
                   </div>
                 ) : null}
@@ -1738,7 +1738,7 @@ export function AdminPanel({
                 ) : (
                   <div className="surface-subtle">
                     <span className="muted">
-                      Este usuario esta sem grupos vinculados no momento.
+                      Este usuário esta sem grupos vinculados no momento.
                     </span>
                   </div>
                 )}
@@ -1787,7 +1787,7 @@ export function AdminPanel({
                   }
                   value={classificationRequiresSpecies ? "yes" : "no"}
                 >
-                  <option value="no">Nao</option>
+                  <option value="no">Não</option>
                   <option value="yes">Sim</option>
                 </select>
               </div>
@@ -1810,7 +1810,7 @@ export function AdminPanel({
                     <div className="stack-xs">
                       <strong>Tags associadas</strong>
                       <span className="muted">
-                        Renomeie, exclua ou crie novas tags sem sair da classificacao.
+                        Renomeie, exclua ou crie novas tags sem sair da classificação.
                       </span>
                     </div>
                     <button
@@ -1842,7 +1842,7 @@ export function AdminPanel({
                               onClick={() => {
                                 if (
                                   window.confirm(
-                                    "Deseja excluir esta tag? Se houver pontos relacionados, ela sera apenas desativada.",
+                                    "Deseja excluir esta tag? Se houver pontos relacionados, ela será apenas desativada.",
                                   )
                                 ) {
                                   void handleDeletePointTag(tag.id);
@@ -1865,7 +1865,7 @@ export function AdminPanel({
                     </div>
                   ) : (
                     <span className="muted">
-                      Nenhuma tag associada a esta classificacao ainda.
+                      Nenhuma tag associada a esta classificação ainda.
                     </span>
                   )}
                 </section>
@@ -1873,7 +1873,7 @@ export function AdminPanel({
             ) : (
               <div className="surface-subtle">
                 <span className="muted">
-                  Salve a classificacao primeiro para cadastrar as tags associadas.
+                  Salve a classificação primeiro para cadastrar as tags associadas.
                 </span>
               </div>
             )}
@@ -1900,7 +1900,7 @@ export function AdminPanel({
               </select>
               {tagModalReturnClassificationId ? (
                 <span className="hint">
-                  Esta tag esta sendo editada dentro da classificacao selecionada.
+                  Esta tag esta sendo editada dentro da classificação selecionada.
                 </span>
               ) : null}
             </div>
@@ -2024,7 +2024,7 @@ export function AdminPanel({
                   value={speciesOrigin}
                 >
                   <option value="native">Nativa</option>
-                  <option value="exotic">Exotica</option>
+                  <option value="exotic">Exótica</option>
                 </select>
               </div>
               <div className="field">
@@ -2073,7 +2073,7 @@ export function AdminPanel({
         setPointTags((current) =>
           current.filter((tag) => tag.point_classification_id !== classificationId),
         );
-        toast.success("Classificacao removida permanentemente.");
+        toast.success("Classificação removida permanentemente.");
         return;
       }
 
@@ -2100,9 +2100,9 @@ export function AdminPanel({
         );
       }
 
-      toast.success("Classificacao desativada por possuir relacionamentos.");
+      toast.success("Classificação desativada por possuir relacionamentos.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel excluir.";
+      const message = error instanceof Error ? error.message : "Não foi possível excluir.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -2128,7 +2128,7 @@ export function AdminPanel({
 
       toast.success("Tag desativada por possuir relacionamentos.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel excluir.";
+      const message = error instanceof Error ? error.message : "Não foi possível excluir.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -2139,11 +2139,11 @@ export function AdminPanel({
       <div className="page-header">
         <div>
           <p className="eyebrow">Administracao</p>
-          <h1>{canManageGlobalCatalogs ? "Gestao da plataforma" : "Gestao dos grupos"}</h1>
+          <h1>{canManageGlobalCatalogs ? "Gestão da plataforma" : "Gestão dos grupos"}</h1>
           <p className="subtitle">
             {canManageGlobalCatalogs
-              ? "A listagem fica visivel o tempo todo; criacao e edicao abrem em sobreposicao."
-              : "Gerencie os grupos sob sua responsabilidade e os papeis dos usuarios vinculados a eles."}
+              ? "A listagem fica visível o tempo todo; criação e edição abrem em sobreposicao."
+              : "Gerencie os grupos sob sua responsabilidade e os papéis dos usuários vinculados a eles."}
           </p>
         </div>
       </div>

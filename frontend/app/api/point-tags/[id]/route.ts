@@ -28,13 +28,13 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Payload de atualizacao invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de atualização inválido." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = {};
@@ -79,7 +79,7 @@ export async function PATCH(
   }
 
   if (!loaded.data) {
-    return NextResponse.json({ error: "Tag nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Tag não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json(normalizePointTag(loaded.data));
@@ -96,7 +96,7 @@ export async function DELETE(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const adminSupabase = createAdminSupabaseClient();
@@ -126,7 +126,7 @@ export async function DELETE(
     }
 
     if (!loaded.data) {
-      return NextResponse.json({ error: "Tag nao encontrada." }, { status: 404 });
+      return NextResponse.json({ error: "Tag não encontrada." }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -146,7 +146,7 @@ export async function DELETE(
   }
 
   if (!deletedRows?.length) {
-    return NextResponse.json({ error: "Tag nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Tag não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json({

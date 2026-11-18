@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   Eye,
   Filter,
+  List as ListIcon,
+  Map as MapIcon,
+  Maximize2,
+  Pencil,
   LocateFixed,
   MapPin,
   Plus,
@@ -21,12 +25,20 @@ import { toast } from "sonner";
 
 import { MapCanvas, type MapCanvasHandle } from "@/components/map/map-canvas";
 import { PointCreationModal } from "@/components/points/point-creation-modal";
+import { PointEditDrawer } from "@/components/points/point-edit-drawer";
 import { PointQuickViewModal } from "@/components/points/point-quick-view-modal";
 import { PointTagBadges } from "@/components/points/point-tag-badges";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { apiClient } from "@/lib/api-client";
 import type { FlashFeedbackPayload } from "@/lib/flash-feedback";
+import {
+  loadMapFilters,
+  saveMapFilters,
+  syncMapUrl,
+  type MapViewState,
+} from "@/lib/map-view-state";
 import { getPointDisplayColor, isPointPendingForReview } from "@/lib/point-display";
+import { describePointUpdate } from "@/lib/point-update";
 import { useModalAccessibility } from "@/lib/use-modal-accessibility";
 import {
   type CreatePointPayload,
@@ -41,6 +53,10 @@ interface MapDashboardProps {
   initialPoints: PointRecord[];
   initialGroupCode?: string | null;
   initialGroupSelectionWasImplicit?: boolean;
+  /** Posicao vinda da URL (lat/lng/z). */
+  initialView?: MapViewState | null;
+  /** Ponto selecionado vindo da URL (?ponto=). */
+  initialPointId?: string | null;
   visibleGroups: GroupRecord[];
   submissionGroups: GroupRecord[];
   approvableGroups: GroupRecord[];
@@ -109,6 +125,8 @@ export function MapDashboard({
   initialPoints,
   initialGroupCode,
   initialGroupSelectionWasImplicit = false,
+  initialView = null,
+  initialPointId = null,
   visibleGroups,
   submissionGroups,
   approvableGroups,
@@ -127,7 +145,28 @@ export function MapDashboard({
       : null) ?? null;
 
   const [points, setPoints] = useState(initialPoints);
-  const [focusedPointId, setFocusedPointId] = useState<string | null>(null);
+  const initialFocusedPoint =
+    (initialPointId ? initialPoints.find((point) => point.id === initialPointId) : null) ?? null;
+  const [focusedPointId, setFocusedPointId] = useState<string | null>(
+    initialFocusedPoint?.id ?? null,
+  );
+  // Sem posicao na URL, mas com ponto (ex.: link de notificacao): abre centrado no ponto.
+  const [startView] = useState<MapViewState | null>(
+    initialView ??
+      (initialFocusedPoint
+        ? {
+            latitude: initialFocusedPoint.latitude,
+            longitude: initialFocusedPoint.longitude,
+            zoom: 17,
+          }
+        : null),
+  );
+  const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+  const [editingPointId, setEditingPointId] = useState<string | null>(null);
+  const [fitRequestKey, setFitRequestKey] = useState(0);
+  const listSectionRef = useRef<HTMLElement | null>(null);
+  const mapSectionRef = useRef<HTMLElement | null>(null);
+  const filtersRestoredRef = useRef(false);
   const [quickViewPoint, setQuickViewPoint] = useState<PointRecord | null>(null);
   const activeClassificationIds = useMemo(() => {
     const active = classifications.filter((classification) => classification.is_active);
@@ -213,7 +252,7 @@ export function MapDashboard({
           point.species_common_name ??
           point.species_name ??
           point.species_scientific_name ??
-          "Especie sem nome",
+          "Espécie sem nome",
       });
     }
 
@@ -236,6 +275,8 @@ export function MapDashboard({
         }
 
         setPoints(nextPoints);
+        // Trocar de grupo muda a area de interesse: reenquadra nos pontos do novo grupo.
+        setFitRequestKey((current) => current + 1);
         setQuickViewPoint((current) =>
           current ? nextPoints.find((point) => point.id === current.id) ?? null : null,
         );
@@ -245,7 +286,7 @@ export function MapDashboard({
       } catch (error) {
         if (!ignore) {
           setErrorMessage(
-            error instanceof Error ? error.message : "Nao foi possivel carregar os pontos.",
+            error instanceof Error ? error.message : "Não foi possível carregar os pontos.",
           );
         }
       }
@@ -282,6 +323,46 @@ export function MapDashboard({
     selectedSpeciesIds,
     selectedTagIds,
   ]);
+
+  // Restaura os filtros rapidos da aba (classificacoes, pendentes, meus pontos).
+  useEffect(() => {
+    const stored = loadMapFilters();
+
+    if (stored) {
+      const knownIds = new Set(classifications.map((classification) => classification.id));
+      const restoredIds = stored.classificationIds.filter((id) => knownIds.has(id));
+
+      if (restoredIds.length) {
+        setSelectedClassificationIds(restoredIds);
+      }
+
+      setPendingOnly(stored.pendingOnly);
+      setMineOnly(stored.mineOnly && isAuthenticated);
+    }
+
+    filtersRestoredRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!filtersRestoredRef.current) {
+      return;
+    }
+
+    saveMapFilters({
+      classificationIds: selectedClassificationIds,
+      pendingOnly,
+      mineOnly,
+    });
+  }, [mineOnly, pendingOnly, selectedClassificationIds]);
+
+  useEffect(() => {
+    syncMapUrl({ pointId: focusedPointId });
+  }, [focusedPointId]);
+
+  function handleMapViewChange(view: MapViewState) {
+    syncMapUrl({ view });
+  }
 
   function syncGroupUrl(nextGroupId: string) {
     if (typeof window === "undefined") {
@@ -356,23 +437,23 @@ export function MapDashboard({
       setFeedback({
         title:
           createdPoint.approval_status === "pending"
-            ? "Ponto enviado para aprovacao"
+            ? "Ponto enviado para aprovação"
             : "Ponto criado com sucesso",
         message:
           createdPoint.approval_status === "pending"
-            ? "O registro ja pode ser acompanhado por voce e pelos aprovadores do grupo."
-            : "O novo ponto ja aparece no mapa com os dados salvos.",
+            ? "O registro já pode ser acompanhado por você e pelos aprovadores do grupo."
+            : "O novo ponto já aparece no mapa com os dados salvos.",
         actionHref: `/points/${nextPoint.id}`,
         actionLabel: "Abrir detalhe",
       });
       toast.success(
         createdPoint.approval_status === "pending"
-          ? "Ponto enviado para aprovacao."
+          ? "Ponto enviado para aprovação."
           : "Ponto criado com sucesso.",
       );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel criar o ponto.";
+        error instanceof Error ? error.message : "Não foi possível criar o ponto.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -396,13 +477,13 @@ export function MapDashboard({
         title:
           action === "approve"
             ? point.has_pending_update
-              ? "Alteracao aprovada"
+              ? "Alteração aprovada"
               : "Ponto aprovado"
             : "Ponto rejeitado",
         message:
           action === "approve"
-            ? "A listagem e o mapa ja refletem a decisao tomada."
-            : "O ponto continua disponivel apenas para os perfis com acesso de revisao.",
+            ? "A listagem e o mapa já refletem a decisão tomada."
+            : "O ponto continua disponível apenas para os perfis com acesso de revisão.",
         actionHref: `/points/${point.id}`,
         actionLabel: "Abrir detalhe",
       });
@@ -410,12 +491,12 @@ export function MapDashboard({
       toast.success(
         action === "approve"
           ? point.has_pending_update
-            ? "Alteracao aprovada."
+            ? "Alteração aprovada."
             : "Ponto aprovado."
           : "Ponto rejeitado.",
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel revisar o ponto.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível revisar o ponto.");
     }
   }
 
@@ -427,11 +508,11 @@ export function MapDashboard({
       setFocusedPointId((current) => (current === point.id ? null : current));
       setFeedback({
         title: "Ponto arquivado",
-        message: "O registro saiu das listagens operacionais, mas o historico foi preservado.",
+        message: "O registro saiu das listagens operacionais, mas o histórico foi preservado.",
       });
       toast.success("Ponto arquivado com sucesso.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel arquivar o ponto.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível arquivar o ponto.");
     }
   }
 
@@ -439,7 +520,7 @@ export function MapDashboard({
     event.preventDefault();
 
     if (!addressQuery.trim()) {
-      toast.error("Informe um endereco para buscar.");
+      toast.error("Informe um endereço para buscar.");
       return;
     }
 
@@ -449,12 +530,12 @@ export function MapDashboard({
       const result = await mapRef.current?.searchAddress(addressQuery.trim());
 
       if (!result?.success) {
-        toast.error(result?.message ?? "Nao foi possivel localizar o endereco.");
+        toast.error(result?.message ?? "Não foi possível localizar o endereço.");
         return;
       }
 
       setIsFiltersOpen(false);
-      toast.success(result.message ?? "Endereco localizado no mapa.");
+      toast.success(result.message ?? "Endereço localizado no mapa.");
     } finally {
       setIsSearchingAddress(false);
     }
@@ -467,14 +548,48 @@ export function MapDashboard({
       const result = await mapRef.current?.centerOnCurrentLocation();
 
       if (!result?.success) {
-        toast.error(result?.message ?? "Nao foi possivel centralizar o mapa.");
+        toast.error(result?.message ?? "Não foi possível centralizar o mapa.");
         return;
       }
 
-      toast.success(result.message ?? "Mapa centralizado na sua posicao atual.");
+      toast.success(result.message ?? "Mapa centralizado na sua posição atual.");
     } finally {
       setIsCenteringOnCurrentLocation(false);
     }
+  }
+
+  function openEditDrawer(point: PointRecord) {
+    setQuickViewPoint(null);
+    setFocusedPointId(point.id);
+    setEditingPointId(point.id);
+  }
+
+  async function handleEditSaved(updatedPoint: PointRecord) {
+    const outcome = describePointUpdate(updatedPoint);
+
+    try {
+      await refreshPoints(groupFilter);
+    } catch {
+      // A lista sera atualizada na proxima carga; a edicao ja foi salva.
+    }
+
+    setEditingPointId(null);
+    setFocusedPointId(updatedPoint.id);
+    setFeedback({
+      title: outcome.title,
+      message: `${updatedPoint.title}: ${outcome.message}`,
+      actionHref: `/points/${updatedPoint.id}`,
+      actionLabel: "Abrir detalhe",
+    });
+    toast.success(outcome.toast);
+  }
+
+  function showListOnMobile() {
+    listSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function showMapOnMobile() {
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function openPointModal(point: PointRecord) {
@@ -506,15 +621,15 @@ export function MapDashboard({
 
   function openEmptyModal() {
     if (!classifications.length) {
-      setErrorMessage("Nao ha classificacoes cadastradas para criar novos pontos.");
+      setErrorMessage("Não ha classificações cadastradas para criar novos pontos.");
       return;
     }
 
     if (!submissionGroups.length) {
       setErrorMessage(
         isAuthenticated
-          ? "Seu usuario nao esta associado a um grupo com permissao para criar pontos."
-          : "Faca login para criar pontos.",
+          ? "Seu usuário não esta associado a um grupo com permissão para criar pontos."
+          : "Faça login para criar pontos.",
       );
       return;
     }
@@ -532,15 +647,15 @@ export function MapDashboard({
 
   function handleMapContextMenu(coordinates: { longitude: number; latitude: number }) {
     if (!classifications.length) {
-      setErrorMessage("Nao ha classificacoes cadastradas para criar novos pontos.");
+      setErrorMessage("Não ha classificações cadastradas para criar novos pontos.");
       return;
     }
 
     if (!submissionGroups.length) {
       setErrorMessage(
         isAuthenticated
-          ? "Seu usuario nao esta associado a um grupo com permissao para criar pontos."
-          : "Faca login para criar pontos com o botao direito no mapa.",
+          ? "Seu usuário não esta associado a um grupo com permissão para criar pontos."
+          : "Faça login para criar pontos com o botão direito no mapa.",
       );
       return;
     }
@@ -648,13 +763,13 @@ export function MapDashboard({
     (safePage - 1) * POINTS_PER_PAGE,
     safePage * POINTS_PER_PAGE,
   );
-  const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visiveis";
+  const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visíveis";
   const groupSubheading = currentGroupSummary
     ? null
     : `${visibleGroups.length} grupos no filtro atual`;
   const desktopGroupSwitcherLabel =
     groupFilter === "all"
-      ? "Todos os grupos visiveis"
+      ? "Todos os grupos visíveis"
       : isGroupSelectionImplicit
         ? "Escolher grupo"
         : "Trocar grupo";
@@ -675,16 +790,16 @@ export function MapDashboard({
     if (hasClassificationRestriction) {
       labels.push(
         selectedClassificationIds.length
-          ? `${selectedClassificationIds.length} classificacoes`
-          : "Nenhuma classificacao",
+          ? `${selectedClassificationIds.length} classificações`
+          : "Nenhuma classificação",
       );
     }
 
     if (hasSpeciesRestriction) {
       labels.push(
         selectedSpeciesIds.length
-          ? `${selectedSpeciesIds.length} especies`
-          : "Nenhuma especie",
+          ? `${selectedSpeciesIds.length} espécies`
+          : "Nenhuma espécie",
       );
     }
 
@@ -770,21 +885,21 @@ export function MapDashboard({
 
   const classificationQuickLabel = useMemo(() => {
     if (!selectedClassificationIds.length) {
-      return "Nenhuma classificacao";
+      return "Nenhuma classificação";
     }
 
     if (selectedClassificationIds.length === activeClassificationIds.length) {
-      return "Todas as classificacoes";
+      return "Todas as classificações";
     }
 
     if (selectedClassificationIds.length === 1) {
       return (
         classifications.find((classification) => classification.id === selectedClassificationIds[0])
-          ?.name ?? "1 classificacao"
+          ?.name ?? "1 classificação"
       );
     }
 
-    return `${selectedClassificationIds.length} classificacoes`;
+    return `${selectedClassificationIds.length} classificações`;
   }, [activeClassificationIds.length, classifications, selectedClassificationIds]);
   const hasAdvancedFiltersActive = hasSpeciesRestriction || hasTagRestriction;
 
@@ -795,13 +910,38 @@ export function MapDashboard({
   }, [page, safePage]);
 
   useEffect(() => {
+    // A selecao do ponto e mantida mesmo se um filtro o esconder momentaneamente
+    // (ela vem da URL e nao deve se perder enquanto os filtros sao restaurados).
     setQuickViewPoint((current) =>
       current && filteredPoints.some((point) => point.id === current.id) ? current : null,
     );
-    setFocusedPointId((current) =>
-      current && filteredPoints.some((point) => point.id === current) ? current : null,
-    );
   }, [filteredPoints]);
+
+  const sortedPointsRef = useRef(sortedPoints);
+  sortedPointsRef.current = sortedPoints;
+
+  // Ponto escolhido no mapa: abre a pagina da lista onde ele esta e rola ate ele (computador).
+  useEffect(() => {
+    if (!focusedPointId) {
+      return;
+    }
+
+    const index = sortedPointsRef.current.findIndex(({ point }) => point.id === focusedPointId);
+
+    if (index < 0) {
+      return;
+    }
+
+    setPage(Math.floor(index / POINTS_PER_PAGE) + 1);
+
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1180px)").matches) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(`ponto-lista-${focusedPointId}`)
+          ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    }
+  }, [focusedPointId]);
 
   return (
     <section className="page-stack map-page">
@@ -861,10 +1001,10 @@ export function MapDashboard({
         {canCreatePoints ? (
           <div className="map-creation-hint" role="note">
             <span className="desktop-only">
-              Use Novo ponto para criar no centro do mapa. Se preferir um atalho, clique com o botao direito para criar exatamente no local desejado.
+              Use Novo ponto para criar no centro do mapa. Se preferir um atalho, clique com o botão direito para criar exatamente no local desejado.
             </span>
             <span className="mobile-only">
-              No celular, arraste o mapa ate o local desejado e toque em Novo ponto. O ponto sera criado no centro do mapa.
+              No celular, arraste o mapa até o local desejado e toque em Novo ponto. O ponto será criado no centro do mapa.
             </span>
           </div>
         ) : null}
@@ -883,7 +1023,7 @@ export function MapDashboard({
             type="button"
           >
             <LocateFixed aria-hidden="true" size={16} />
-            {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posicao"}
+            {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posição"}
           </button>
         </div>
 
@@ -951,16 +1091,46 @@ export function MapDashboard({
 
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
-      <section className="panel map-panel">
+      <div className="map-workspace">
+      <section className="panel map-panel" ref={mapSectionRef}>
         <MapCanvas
           ref={mapRef}
+          autoCenterOnCurrentLocation={!startView}
+          fitRequestKey={fitRequestKey}
+          highlightedPointId={hoveredPointId}
+          initialCenter={
+            startView ? { latitude: startView.latitude, longitude: startView.longitude } : null
+          }
+          initialZoom={startView?.zoom ?? 17}
           onCenterChange={handleMapCenterChange}
+          onEditPoint={isAuthenticated ? openEditDrawer : undefined}
           onMapContextMenu={handleMapContextMenu}
           onOpenPointSummary={(point) => setQuickViewPoint(point)}
           onSelectPoint={(point) => setFocusedPointId(point.id)}
+          onViewChange={handleMapViewChange}
           points={filteredPoints}
           selectedPointId={focusedPointId}
         />
+        <div className="map-overlay-actions">
+          <button
+            className="map-overlay-button"
+            disabled={!filteredPoints.length}
+            onClick={() => setFitRequestKey((current) => current + 1)}
+            title="Enquadrar todos os pontos do filtro atual"
+            type="button"
+          >
+            <Maximize2 aria-hidden="true" size={15} />
+            <span>Ver todos</span>
+          </button>
+        </div>
+        <button
+          className="map-overlay-button map-list-toggle mobile-only-flex"
+          onClick={showListOnMobile}
+          type="button"
+        >
+          <ListIcon aria-hidden="true" size={15} />
+          <span>Lista ({sortedPoints.length})</span>
+        </button>
         {canCreatePoints ? (
           <>
             <div aria-hidden="true" className="map-center-target">
@@ -973,26 +1143,42 @@ export function MapDashboard({
         ) : null}
       </section>
 
-      <section className="list-card stack-md">
-        <div className="panel-header">
+      <section className="list-card stack-md map-list-panel" ref={listSectionRef}>
+        <div className="panel-header map-list-header">
           <div className="stack-xs">
             <h2 className="section-title">Pontos do filtro</h2>
-            <p className="subtitle">
-              Ordenados pela distancia em relacao ao centro atual do mapa.
-            </p>
+            <p className="subtitle">Do mais perto ao mais longe do centro do mapa.</p>
           </div>
-          <div className="button-row">
-            <span className="badge">
-              Pagina {safePage} de {totalPages}
-            </span>
-            <span className="badge">{sortedPoints.length} registros</span>
+          <div className="button-row map-list-header-badges">
+            <span className="badge">{sortedPoints.length} pontos</span>
+            {totalPages > 1 ? (
+              <span className="badge">
+                Página {safePage} de {totalPages}
+              </span>
+            ) : null}
+            <button
+              className="button-ghost compact mobile-only-flex map-back-to-map"
+              onClick={showMapOnMobile}
+              type="button"
+            >
+              <MapIcon aria-hidden="true" size={15} />
+              Ver mapa
+            </button>
           </div>
         </div>
 
         <div className="point-line-list">
           {paginatedPoints.length ? (
             paginatedPoints.map(({ point, distance }) => (
-              <article className="point-line-item point-line-card" key={point.id}>
+              <article
+                className={`point-line-item point-line-card${focusedPointId === point.id ? " is-selected" : ""}`}
+                id={`ponto-lista-${point.id}`}
+                key={point.id}
+                onMouseEnter={() => setHoveredPointId(point.id)}
+                onMouseLeave={() =>
+                  setHoveredPointId((current) => (current === point.id ? null : current))
+                }
+              >
                 {(() => {
                   const PointIcon = getPointCardIcon(point);
 
@@ -1036,17 +1222,34 @@ export function MapDashboard({
                 </div>
                 <div className="point-line-actions">
                   <button
-                    className="button-ghost"
-                    onClick={() => centerPointOnMap(point)}
+                    className="button-ghost compact"
+                    onClick={() => {
+                      centerPointOnMap(point);
+                      showMapOnMobile();
+                    }}
                     type="button"
                   >
                     <LocateFixed aria-hidden="true" size={15} />
-                    Centralizar
+                    No mapa
                   </button>
-                  <button className="button-ghost" onClick={() => openPointModal(point)} type="button">
+                  <button
+                    className="button-ghost compact"
+                    onClick={() => openPointModal(point)}
+                    type="button"
+                  >
                     <Eye aria-hidden="true" size={15} />
-                    Ver resumo
+                    Resumo
                   </button>
+                  {isAuthenticated && (point.viewer_can_manage || point.viewer_can_request_update) ? (
+                    <button
+                      className="button-ghost compact"
+                      onClick={() => openEditDrawer(point)}
+                      type="button"
+                    >
+                      <Pencil aria-hidden="true" size={15} />
+                      {point.viewer_can_manage ? "Editar" : "Sugerir"}
+                    </button>
+                  ) : null}
                 </div>
               </article>
             ))
@@ -1075,11 +1278,12 @@ export function MapDashboard({
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               type="button"
             >
-              Proxima
+              Próxima
             </button>
           </div>
         ) : null}
       </section>
+      </div>
 
       <PointCreationModal
         classifications={classifications}
@@ -1095,9 +1299,21 @@ export function MapDashboard({
       <PointQuickViewModal
         onApprove={(point) => handleReviewPoint(point, "approve")}
         onClose={() => setQuickViewPoint(null)}
+        onEdit={isAuthenticated ? openEditDrawer : undefined}
         onDelete={handleDeletePoint}
         onReject={(point) => handleReviewPoint(point, "reject")}
         point={quickViewPoint}
+      />
+
+      <PointEditDrawer
+        classifications={classifications}
+        onClose={() => setEditingPointId(null)}
+        onSaved={handleEditSaved}
+        pointId={editingPointId}
+        speciesAdminHref={speciesAdminHref}
+        speciesCatalog={speciesCatalog}
+        submissionGroups={submissionGroups}
+        visibleGroups={visibleGroups}
       />
 
       {isGroupPickerOpen ? (
@@ -1130,7 +1346,7 @@ export function MapDashboard({
                 type="button"
               >
                 <div className="stack-xs">
-                  <strong>Todos os grupos visiveis</strong>
+                  <strong>Todos os grupos visíveis</strong>
                   <span className="muted">Exibe os grupos publicos ou acessiveis no seu perfil.</span>
                 </div>
               </button>
@@ -1147,7 +1363,7 @@ export function MapDashboard({
                   <div className="stack-xs">
                     <strong>{group.name}</strong>
                     <span className="muted">
-                      {group.is_public ? "Grupo publico" : "Grupo privado"}
+                      {group.is_public ? "Grupo público" : "Grupo privado"}
                     </span>
                   </div>
                 </button>
@@ -1165,7 +1381,7 @@ export function MapDashboard({
                 <div className="stack-xs">
                   <h2 className="section-title">Filtros avancados e busca</h2>
                   <p className="subtitle">
-                    Ajuste classificacoes, refine por especies e tags e localize um endereco no mapa.
+                    Ajuste classificações, refine por espécies e tags e localize um endereço no mapa.
                   </p>
                 </div>
                 <button
@@ -1183,9 +1399,9 @@ export function MapDashboard({
               <div className="stack-sm">
                 <div className="panel-header">
                   <div className="stack-xs">
-                    <strong>Classificacoes</strong>
+                    <strong>Classificações</strong>
                     <span className="muted">
-                      Os pontos do mapa respeitam todas as classificacoes marcadas abaixo.
+                      Os pontos do mapa respeitam todas as classificações marcadas abaixo.
                     </span>
                   </div>
                   <div className="button-row">
@@ -1215,9 +1431,9 @@ export function MapDashboard({
               <div className="stack-sm">
                 <div className="panel-header">
                   <div className="stack-xs">
-                    <strong>Especies</strong>
+                    <strong>Espécies</strong>
                     <span className="muted">
-                      O filtro por especie afeta apenas os pontos das classificacoes que usam especies.
+                      O filtro por espécie afeta apenas os pontos das classificações que usam espécies.
                     </span>
                   </div>
                   {visibleSpeciesOptions.length ? (
@@ -1248,12 +1464,12 @@ export function MapDashboard({
                     </div>
                   ) : (
                     <span className="muted">
-                      Nenhuma especie encontrada nas classificacoes selecionadas.
+                      Nenhuma espécie encontrada nas classificações selecionadas.
                     </span>
                   )
                 ) : (
                   <span className="muted">
-                    Marque pelo menos uma classificacao para exibir as especies relacionadas.
+                    Marque pelo menos uma classificação para exibir as espécies relacionadas.
                   </span>
                 )}
               </div>
@@ -1263,7 +1479,7 @@ export function MapDashboard({
                   <div className="stack-xs">
                     <strong>Tags</strong>
                     <span className="muted">
-                      As tags acompanham as classificacoes marcadas. Se todas estiverem marcadas, o mapa nao restringe por tags.
+                      As tags acompanham as classificações marcadas. Se todas estiverem marcadas, o mapa não restringe por tags.
                     </span>
                   </div>
                   {visibleTagOptions.length ? (
@@ -1293,12 +1509,12 @@ export function MapDashboard({
                     </div>
                   ) : (
                     <span className="muted">
-                      Nenhuma tag cadastrada para as classificacoes selecionadas.
+                      Nenhuma tag cadastrada para as classificações selecionadas.
                     </span>
                   )
                 ) : (
                   <span className="muted">
-                    Marque pelo menos uma classificacao para exibir as tags relacionadas.
+                    Marque pelo menos uma classificação para exibir as tags relacionadas.
                   </span>
                 )}
               </div>
@@ -1306,13 +1522,13 @@ export function MapDashboard({
               <form className="map-search-form" onSubmit={handleAddressSearch}>
                 <label className="toolbar-label" htmlFor="map-address-search-mobile">
                   <Search aria-hidden="true" size={15} />
-                  <span>Buscar endereco</span>
+                  <span>Buscar endereço</span>
                 </label>
                 <div className="map-search-row">
                   <input
                     id="map-address-search-mobile"
                     onChange={(event) => setAddressQuery(event.target.value)}
-                    placeholder="Rua, bairro, numero ou referencia"
+                    placeholder="Rua, bairro, número ou referência"
                     value={addressQuery}
                   />
                   <button className="button-ghost" disabled={isSearchingAddress} type="submit">

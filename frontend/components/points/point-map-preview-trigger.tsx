@@ -99,7 +99,7 @@ export function PointMapPreviewTrigger({
       } catch (error) {
         if (!ignore) {
           setLoadError(
-            error instanceof Error ? error.message : "Nao foi possivel carregar o mapa.",
+            error instanceof Error ? error.message : "Não foi possível carregar o mapa.",
           );
         }
       } finally {

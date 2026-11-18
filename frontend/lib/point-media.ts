@@ -27,7 +27,7 @@ export async function getCurrentPointMediaRows(pointId: string) {
 
 export function validatePointMediaFiles(files: File[]) {
   if (files.length > MAX_POINT_FILES) {
-    throw new Error(`Envie no maximo ${MAX_POINT_FILES} fotos por ponto.`);
+    throw new Error(`Envie no máximo ${MAX_POINT_FILES} fotos por ponto.`);
   }
 
   for (const file of files) {
@@ -36,7 +36,7 @@ export function validatePointMediaFiles(files: File[]) {
     }
 
     if (file.size > MAX_POINT_FILE_SIZE) {
-      throw new Error("Cada foto pode ter no maximo 10 MB.");
+      throw new Error("Cada foto pode ter no máximo 10 MB.");
     }
   }
 }
@@ -167,7 +167,7 @@ export async function appendCurrentPointMedia(
   const existingRows = await getCurrentPointMediaRows(pointId);
 
   if (existingRows.length + nextMedia.length > MAX_POINT_FILES) {
-    throw new Error(`O ponto pode ter no maximo ${MAX_POINT_FILES} fotos.`);
+    throw new Error(`O ponto pode ter no máximo ${MAX_POINT_FILES} fotos.`);
   }
 
   const adminSupabase = createAdminSupabaseClient();

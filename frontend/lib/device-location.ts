@@ -27,22 +27,22 @@ function getErrorMessage(error: unknown) {
         : null;
 
   if (!message) {
-    return "Nao foi possivel acessar sua localizacao atual.";
+    return "Não foi possível acessar sua localização atual.";
   }
 
   if (/denied|negad|0003/i.test(message)) {
-    return "Permissao de localizacao negada no aplicativo.";
+    return "Permissao de localização negada no aplicativo.";
   }
 
   if (/disabled|desativad|0007|0016|0017/i.test(message)) {
-    return "Ative a localizacao do aparelho para continuar.";
+    return "Ative a localização do aparelho para continuar.";
   }
 
   if (/timeout|0010/i.test(message)) {
-    return "A localizacao demorou mais que o esperado. Tente novamente.";
+    return "A localização demorou mais que o esperado. Tente novamente.";
   }
 
-  return "Nao foi possivel acessar sua localizacao atual.";
+  return "Não foi possível acessar sua localização atual.";
 }
 
 async function getNativeDeviceLocation(): Promise<DeviceLocationResult> {
@@ -57,7 +57,7 @@ async function getNativeDeviceLocation(): Promise<DeviceLocationResult> {
       if (requestState.location !== "granted") {
         return {
           success: false,
-          message: "Permissao de localizacao negada no aplicativo.",
+          message: "Permissao de localização negada no aplicativo.",
         };
       }
     }
@@ -86,7 +86,7 @@ async function getBrowserLocation(): Promise<DeviceLocationResult> {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     return {
       success: false,
-      message: "Geolocalizacao nao disponivel neste navegador.",
+      message: "Geolocalizacao não disponível neste navegador.",
     };
   }
 
@@ -101,7 +101,7 @@ async function getBrowserLocation(): Promise<DeviceLocationResult> {
   if (!position) {
     return {
       success: false,
-      message: "Nao foi possivel localizar sua posicao atual.",
+      message: "Não foi possível localizar sua posição atual.",
     };
   }
 

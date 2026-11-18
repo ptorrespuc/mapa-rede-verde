@@ -31,7 +31,7 @@ export async function GET(
     const viewerProfileId = await loadViewerProfileId(supabase, actorAuthUserId);
 
     if (!canViewerSeePoint(point, viewerProfileId)) {
-      throw new ApiRouteError("Ponto nao encontrado.", {
+      throw new ApiRouteError("Ponto não encontrado.", {
         status: 404,
         code: "POINT_NOT_FOUND",
       });
@@ -103,7 +103,7 @@ export async function DELETE(
 
   try {
     if (!eventId) {
-      throw new ApiRouteError("Informe o evento que deve ser excluido.", {
+      throw new ApiRouteError("Informe o evento que deve ser excluído.", {
         status: 400,
         code: "POINT_EVENT_ID_REQUIRED",
       });

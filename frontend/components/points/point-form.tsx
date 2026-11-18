@@ -206,7 +206,7 @@ export function PointForm({
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Nao foi possivel carregar as tags desta classificacao.",
+              : "Não foi possível carregar as tags desta classificação.",
           );
         }
       } finally {
@@ -412,7 +412,7 @@ export function PointForm({
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Nao foi possivel preparar uma das fotos do ponto.",
+              : "Não foi possível preparar uma das fotos do ponto.",
           );
         }
       }
@@ -423,8 +423,8 @@ export function PointForm({
         if (current.length + nextPhotos.length > maxDraftPointPhotos) {
           setErrorMessage(
             photoUpdateMode === "append"
-              ? `Com as fotos atuais, voce pode adicionar no maximo ${maxDraftPointPhotos} nova(s) foto(s).`
-              : `Use no maximo ${MAX_POINT_PHOTOS} fotos por ponto.`,
+              ? `Com as fotos atuais, você pode adicionar no máximo ${maxDraftPointPhotos} nova(s) foto(s).`
+              : `Use no máximo ${MAX_POINT_PHOTOS} fotos por ponto.`,
           );
         }
 
@@ -493,7 +493,7 @@ export function PointForm({
       Number.isNaN(longitude) ||
       Number.isNaN(latitude)
     ) {
-      setErrorMessage("Grupo, classificacao, longitude e latitude sao obrigatorios.");
+      setErrorMessage("Grupo, classificação, longitude e latitude sao obrigatorios.");
       return;
     }
 
@@ -527,7 +527,7 @@ export function PointForm({
             : undefined,
       });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel salvar o ponto.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível salvar o ponto.");
     } finally {
       setIsSubmitting(false);
     }
@@ -540,7 +540,7 @@ export function PointForm({
           <div className="stack-xs">
             <h3 className="form-section-title">Dados principais</h3>
             <p className="muted">
-              Defina o grupo, a classificacao e as informacoes basicas do ponto.
+              Defina o grupo, a classificação e as informações básicas do ponto.
             </p>
           </div>
         </div>
@@ -566,7 +566,7 @@ export function PointForm({
               >
                 {groups.map((group) => (
                   <option key={group.id} value={group.id}>
-                    {group.name} ({group.is_public ? "publico" : "privado"})
+                    {group.name} ({group.is_public ? "público" : "privado"})
                   </option>
                 ))}
               </select>
@@ -611,8 +611,8 @@ export function PointForm({
               Guardar o estado anterior na linha do tempo
             </label>
             <span className="muted">
-              Se marcado, a timeline guarda o titulo, a especie, a descricao, a posicao do mapa
-              e as fotos atuais do estado anterior quando a reclassificacao for concluida.
+              Se marcado, a timeline guarda o título, a espécie, a descrição, a posição do mapa
+              e as fotos atuais do estado anterior quando a reclassificacao for concluída.
             </span>
           </div>
         ) : null}
@@ -646,7 +646,7 @@ export function PointForm({
               }}
               disabled={!speciesCatalog.length}
             >
-              <option value="">Selecione uma especie</option>
+              <option value="">Selecione uma espécie</option>
               {filteredSpecies.map((species) => (
                 <option key={species.id} value={species.id}>
                   {species.display_name} {species.origin === "exotic" ? "- exotica" : "- nativa"}
@@ -654,7 +654,7 @@ export function PointForm({
               ))}
             </select>
             <span className="hint">
-              Esta classificacao usa o catalogo de especies. Vincular uma especie ao ponto e
+              Esta classificação usa o catalogo de espécies. Vincular uma espécie ao ponto e
               opcional.
             </span>
             {!filteredSpecies.length ? (
@@ -662,11 +662,11 @@ export function PointForm({
                 <span className="muted">Nenhuma especie encontrada para esta busca.</span>
                 {speciesAdminLink ? (
                   <Link className="button-ghost" href={speciesAdminLink} rel="noreferrer" target="_blank">
-                    Cadastrar nova especie
+                    Cadastrar nova espécie
                   </Link>
                 ) : (
                   <span className="muted">
-                    Solicite ao superusuario o cadastro de uma nova especie.
+                    Solicite ao superusuário o cadastro de uma nova espécie.
                   </span>
                 )}
               </div>
@@ -674,7 +674,7 @@ export function PointForm({
             {filteredSpecies.length > 0 && speciesAdminLink ? (
               <div className="form-actions">
                 <Link className="button-ghost" href={speciesAdminLink} rel="noreferrer" target="_blank">
-                  Cadastrar nova especie
+                  Cadastrar nova espécie
                 </Link>
               </div>
             ) : null}
@@ -708,7 +708,7 @@ export function PointForm({
               })}
             </div>
             <span className="hint">
-              Use as tags para detalhar a situacao do ponto dentro desta classificacao.
+              Use as tags para detalhar a situação do ponto dentro desta classificação.
             </span>
           </div>
         ) : null}
@@ -720,7 +720,7 @@ export function PointForm({
             value={formState.title}
             onChange={(event) => setField("title", event.target.value)}
             placeholder={
-              selectedSpecies?.common_name || "Arvore jovem proxima ao portao principal"
+              selectedSpecies?.common_name || "Árvore jovem próxima ao portao principal"
             }
             required
           />
@@ -732,7 +732,7 @@ export function PointForm({
             id="point-description"
             value={formState.description}
             onChange={(event) => setField("description", event.target.value)}
-            placeholder="Problema encontrado, contexto do plantio ou observacoes de campo."
+            placeholder="Problema encontrado, contexto do plantio ou observações de campo."
           />
         </div>
       </section>
@@ -742,7 +742,7 @@ export function PointForm({
           <div className="stack-xs">
             <h3 className="form-section-title">Localizacao</h3>
             <p className="muted">
-              A posicao do ponto pode vir direto do mapa e so precisa de ajuste se necessario.
+              A posição do ponto pode vir direto do mapa e so precisa de ajuste se necessário.
             </p>
           </div>
         </div>
@@ -750,7 +750,7 @@ export function PointForm({
         {hasCoordinates && !showCoordinateEditor ? (
           <div className="surface-subtle form-toggle-card">
             <div className="stack-xs">
-              <strong>Posicao definida no mapa</strong>
+              <strong>Posição definida no mapa</strong>
               <span className="muted">
                 Latitude {Number(formState.latitude).toFixed(6)} | Longitude{" "}
                 {Number(formState.longitude).toFixed(6)}
@@ -826,7 +826,7 @@ export function PointForm({
                   disabled={!hasCoordinates}
                 >
                   <Crosshair aria-hidden="true" size={15} />
-                  Manter so a posicao do mapa
+                  Manter so a posição do mapa
                 </button>
               </div>
             ) : null}
@@ -844,7 +844,7 @@ export function PointForm({
               <p className="muted">
                 {isEditingExistingPoint
                   ? "Defina se as novas fotos entram junto das atuais ou se substituem o conjunto atual."
-                  : "Opcional. Voce pode anexar ate 3 fotos ja no momento do cadastro."}
+                  : "Opcional. Você pode anexar até 3 fotos já no momento do cadastro."}
               </p>
             </div>
           </div>
@@ -878,13 +878,13 @@ export function PointForm({
               </div>
               {!pointPhotoDrafts.length ? (
                 <span className="hint">
-                  Se voce nao enviar novas fotos, essas imagens continuam como estado atual do ponto.
+                  Se você não enviar novas fotos, essas imagens continuam como estado atual do ponto.
                 </span>
               ) : (
                 <div className="surface-subtle">
                   <span className="muted">
                     {willReplaceCurrentPointPhotos
-                      ? "As novas fotos abaixo substituem as fotos atuais quando o salvamento for concluido."
+                      ? "As novas fotos abaixo substituem as fotos atuais quando o salvamento for concluído."
                       : "As novas fotos abaixo serao adicionadas ao conjunto atual, respeitando o limite total de 3 imagens."}
                   </span>
                 </div>
@@ -912,8 +912,8 @@ export function PointForm({
                   <br />
                   <small className="muted">
                     {canAppendPointPhotos
-                      ? `Voce ainda pode adicionar ${MAX_POINT_PHOTOS - existingPointPhotos.length} foto(s).`
-                      : "O ponto ja esta no limite de 3 fotos."}
+                      ? `Você ainda pode adicionar ${MAX_POINT_PHOTOS - existingPointPhotos.length} foto(s).`
+                      : "O ponto já esta no limite de 3 fotos."}
                   </small>
                 </span>
               </label>
@@ -933,7 +933,7 @@ export function PointForm({
                   Substituir fotos atuais
                   <br />
                   <small className="muted">
-                    Remove o conjunto atual e permite enviar ate 3 novas fotos.
+                    Remove o conjunto atual e permite enviar até 3 novas fotos.
                   </small>
                 </span>
               </label>
@@ -946,10 +946,10 @@ export function PointForm({
                 {isEditingExistingPoint
                   ? photoUpdateMode === "append"
                     ? maxDraftPointPhotos > 0
-                      ? `Se quiser mostrar o novo estado do ponto, adicione ate ${maxDraftPointPhotos} nova(s) foto(s).`
-                      : "O ponto ja atingiu o limite de 3 fotos. Troque para substituicao se quiser enviar novas imagens."
-                    : "Se quiser mostrar o novo estado do ponto, envie ate 3 fotos para substituir o conjunto atual."
-                  : "Se quiser, adicione ate 3 fotos do ponto. Cada imagem sera salva com ate 2 MP."}
+                      ? `Se quiser mostrar o novo estado do ponto, adicione até ${maxDraftPointPhotos} nova(s) foto(s).`
+                      : "O ponto já atingiu o limite de 3 fotos. Troque para substituicao se quiser enviar novas imagens."
+                    : "Se quiser mostrar o novo estado do ponto, envie até 3 fotos para substituir o conjunto atual."
+                  : "Se quiser, adicione até 3 fotos do ponto. Cada imagem será salva com até 2 MP."}
               </span>
               <button
                 className="button-ghost button-inline-ghost"
@@ -1009,8 +1009,8 @@ export function PointForm({
                 </div>
                 <span className="hint">
                   {isEditingExistingPoint && photoUpdateMode === "append"
-                    ? `Voce pode adicionar ate ${maxDraftPointPhotos} foto(s) nova(s) mantendo o limite total de ${MAX_POINT_PHOTOS}.`
-                    : `Ate ${MAX_POINT_PHOTOS} fotos por ponto.`}{" "}
+                    ? `Você pode adicionar até ${maxDraftPointPhotos} foto(s) nova(s) mantendo o limite total de ${MAX_POINT_PHOTOS}.`
+                    : `Até ${MAX_POINT_PHOTOS} fotos por ponto.`}{" "}
                   Cada imagem e tratada para no maximo 2 MP. No celular, use &quot;Tirar
                   foto&quot; para
                   abrir a camera.
@@ -1087,8 +1087,8 @@ export function PointForm({
                     {isEditingExistingPoint
                       ? photoUpdateMode === "replace"
                         ? "Manter fotos atuais"
-                        : "Nao adicionar novas fotos agora"
-                      : "Nao adicionar foto agora"}
+                        : "Não adicionar novas fotos agora"
+                      : "Não adicionar foto agora"}
                   </button>
                 </div>
               )}
@@ -1115,7 +1115,7 @@ export function PointForm({
               disabled={!pointCanBePublic}
             >
               <option value="private">Privado</option>
-              <option value="public">Publico</option>
+              <option value="public">Público</option>
             </select>
             {!pointCanBePublic ? (
               <span className="hint">Grupos privados sempre produzem pontos privados.</span>
@@ -1126,8 +1126,8 @@ export function PointForm({
         <div className="surface-subtle">
           <span className="muted">
             {canAutoApprovePoint
-              ? "Como voce pode aprovar pontos neste grupo, o registro sera salvo como ativo automaticamente."
-              : "Pontos enviados em colaboracao ficam pendentes ate revisao e seguem a visibilidade padrao do grupo."}
+              ? "Como você pode aprovar pontos neste grupo, o registro será salvo como ativo automaticamente."
+              : "Pontos enviados em colaboracao ficam pendentes até revisão e seguem a visibilidade padrão do grupo."}
           </span>
         </div>
       ) : null}

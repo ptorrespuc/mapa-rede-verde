@@ -28,14 +28,14 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
 
   if (!body?.pointClassificationId || !body?.name) {
     return NextResponse.json(
-      { error: "Classificacao e nome da tag sao obrigatorios." },
+      { error: "Classificação e nome da tag sao obrigatorios." },
       { status: 400 },
     );
   }
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   );
 
   if (!tag) {
-    return NextResponse.json({ error: "A tag nao foi criada." }, { status: 500 });
+    return NextResponse.json({ error: "A tag não foi criada." }, { status: 500 });
   }
 
   return NextResponse.json(normalizePointTag(tag), { status: 201 });

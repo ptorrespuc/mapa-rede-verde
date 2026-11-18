@@ -28,18 +28,18 @@ export async function GET(
   const rawPoint = (data as PointDetailRecord[] | null)?.[0];
 
   if (!rawPoint) {
-    return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Ponto não encontrado." }, { status: 404 });
   }
 
   const viewerProfileId = await loadViewerProfileId(supabase, user?.id ?? null);
 
   if (!canViewerSeePoint(rawPoint, viewerProfileId)) {
-    return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Ponto não encontrado." }, { status: 404 });
   }
 
   if (!rawPoint.has_pending_update) {
     return NextResponse.json(
-      { error: "Este ponto nao possui alteracao pendente para revisao." },
+      { error: "Este ponto não possui alteração pendente para revisão." },
       { status: 400 },
     );
   }
@@ -49,7 +49,7 @@ export async function GET(
 
   if (!summary) {
     return NextResponse.json(
-      { error: "Nao foi possivel montar a visualizacao da alteracao pendente." },
+      { error: "Não foi possível montar a visualização da alteração pendente." },
       { status: 400 },
     );
   }

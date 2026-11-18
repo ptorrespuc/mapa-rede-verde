@@ -24,12 +24,12 @@ export async function PATCH(
   const currentUser = await getCurrentUserContext();
 
   if (!currentUser) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   if (!currentUser.is_super_admin && !currentUser.has_group_admin) {
     return NextResponse.json(
-      { error: "Voce nao tem permissao para editar usuarios." },
+      { error: "Você não tem permissão para editar usuários." },
       { status: 403 },
     );
   }
@@ -37,7 +37,7 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Payload de atualizacao invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de atualização inválido." }, { status: 400 });
   }
 
   const admin = createAdminSupabaseClient();
@@ -65,7 +65,7 @@ export async function PATCH(
   }
 
   if (!existingUser) {
-    return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
   const existingMemberships = normalizeMembershipRows(
@@ -79,12 +79,12 @@ export async function PATCH(
     : existingMemberships.filter((membership) => manageableGroupIds.has(membership.group_id));
 
   if (!currentUser.is_super_admin && !visibleExistingMemberships.length) {
-    return NextResponse.json({ error: "Usuario fora do seu escopo de administracao." }, { status: 404 });
+    return NextResponse.json({ error: "Usuário fora do seu escopo de administração." }, { status: 404 });
   }
 
   if (!currentUser.is_super_admin && targetIsSuperAdmin) {
     return NextResponse.json(
-      { error: "Administradores de grupo nao podem editar superusuarios." },
+      { error: "Administradores de grupo não podem editar superusuarios." },
       { status: 403 },
     );
   }
@@ -117,7 +117,7 @@ export async function PATCH(
         error:
           error instanceof Error
             ? error.message
-            : "Os vinculos do usuario nao puderam ser processados.",
+            : "Os vinculos do usuário não puderam ser processados.",
       },
       { status: 400 },
     );
@@ -125,7 +125,7 @@ export async function PATCH(
 
   if (currentUser.is_super_admin && (!nextName || !nextEmail)) {
     return NextResponse.json(
-      { error: "Nome e e-mail validos sao obrigatorios para editar o usuario." },
+      { error: "Nome e e-mail validos sao obrigatorios para editar o usuário." },
       { status: 400 },
     );
   }
@@ -136,7 +136,7 @@ export async function PATCH(
     if (!currentUser.is_super_admin) {
       if (membershipGroupIds.some((groupId) => !manageableGroupIds.has(groupId))) {
         return NextResponse.json(
-          { error: "Voce so pode alterar papeis nos grupos que administra." },
+          { error: "Você só pode alterar papéis nos grupos que administra." },
           { status: 403 },
         );
       }
@@ -152,7 +152,7 @@ export async function PATCH(
 
       if ((groups ?? []).length !== membershipGroupIds.length) {
         return NextResponse.json(
-          { error: "Um ou mais grupos informados nao existem." },
+          { error: "Um ou mais grupos informados não existem." },
           { status: 400 },
         );
       }
@@ -172,14 +172,14 @@ export async function PATCH(
     !manageableGroupIds.has(preferredGroupId)
   ) {
     return NextResponse.json(
-      { error: "Voce so pode definir como preferencial um grupo que administra." },
+      { error: "Você só pode definir como preferencial um grupo que administra." },
       { status: 403 },
     );
   }
 
   if (preferredGroupId && !resultingMembershipGroupIds.has(preferredGroupId)) {
     return NextResponse.json(
-      { error: "O grupo preferencial precisa estar entre os grupos vinculados ao usuario." },
+      { error: "O grupo preferencial precisa estar entre os grupos vinculados ao usuário." },
       { status: 400 },
     );
   }
@@ -201,7 +201,7 @@ export async function PATCH(
 
     if (authError) {
       return NextResponse.json(
-        { error: authError.message ?? "Nao foi possivel atualizar o usuario no Auth." },
+        { error: authError.message ?? "Não foi possível atualizar o usuário no Auth." },
         { status: 400 },
       );
     }
@@ -282,14 +282,14 @@ export async function PATCH(
         error:
           error instanceof Error
             ? error.message
-            : "Nao foi possivel recarregar o usuario atualizado.",
+            : "Não foi possível recarregar o usuário atualizado.",
       },
       { status: 400 },
     );
   }
 
   if (!updatedUser) {
-    return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
   return NextResponse.json(updatedUser);
@@ -383,14 +383,14 @@ function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) 
   }
 
   if (!Array.isArray(rawMemberships)) {
-    throw new Error("Os vinculos do usuario precisam ser enviados em lista.");
+    throw new Error("Os vinculos do usuário precisam ser enviados em lista.");
   }
 
   const normalized = new Map<string, UserRole>();
 
   for (const membership of rawMemberships) {
     if (!membership || typeof membership !== "object") {
-      throw new Error("Foi encontrado um vinculo de grupo invalido.");
+      throw new Error("Foi encontrado um vinculo de grupo inválido.");
     }
 
     const groupId =
@@ -400,7 +400,7 @@ function parseMemberships(rawMemberships: unknown, allowedRoles: Set<UserRole>) 
     const role = (membership as { role?: unknown }).role;
 
     if (!groupId || !role || !allowedRoles.has(role as UserRole)) {
-      throw new Error("Foi encontrado um vinculo de grupo invalido.");
+      throw new Error("Foi encontrado um vinculo de grupo inválido.");
     }
 
     normalized.set(groupId, role as UserRole);
@@ -422,7 +422,7 @@ function parsePreferredGroupId(rawPreferredGroupId: unknown) {
   }
 
   if (typeof rawPreferredGroupId !== "string") {
-    throw new Error("O grupo preferencial informado e invalido.");
+    throw new Error("O grupo preferencial informado e inválido.");
   }
 
   const normalized = rawPreferredGroupId.trim();

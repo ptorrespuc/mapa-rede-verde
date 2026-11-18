@@ -109,7 +109,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
       redirectToMap();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel entrar.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setIsSigningIn(false);
     }
@@ -122,7 +122,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
     try {
       if (!canUsePublicSignup) {
-        throw new Error("O cadastro publico esta indisponivel no momento.");
+        throw new Error("O cadastro público esta indisponivel no momento.");
       }
 
       if (registerPassword.trim().length < 8) {
@@ -152,7 +152,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
       }
 
       if (data.session) {
-        setInfoMessage("Cadastro concluido. Redirecionando para o mapa.");
+        setInfoMessage("Cadastro concluído. Redirecionando para o mapa.");
         redirectToMap();
         return;
       }
@@ -162,12 +162,12 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
       setRegisterPassword("");
       setRegisterConfirmPassword("");
       setInfoMessage(
-        "Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faca o login.",
+        "Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faça o login.",
       );
       setView("login");
     } catch (error) {
       setRegisterErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel concluir o cadastro.",
+        error instanceof Error ? error.message : "Não foi possível concluir o cadastro.",
       );
     } finally {
       setIsRegistering(false);
@@ -197,15 +197,15 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
 
       setRecoveryEmail("");
       setInfoMessage(
-        "Se existir uma conta para esse e-mail, voce recebera um link de recuperacao.",
+        "Se existir uma conta para esse e-mail, você recebera um link de recuperacao.",
       );
       setRecoveryInfoMessage(
-        "Se existir uma conta para esse e-mail, voce recebera um link de recuperacao.",
+        "Se existir uma conta para esse e-mail, você recebera um link de recuperacao.",
       );
       setView("login");
     } catch (error) {
       setRecoveryErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel enviar o link de recuperacao.",
+        error instanceof Error ? error.message : "Não foi possível enviar o link de recuperacao.",
       );
     } finally {
       setIsSendingRecovery(false);
@@ -285,7 +285,7 @@ export function LoginForm({ publicCollaborationGroups }: LoginFormProps) {
           <div className="stack-xs">
             <h2 className="section-title auth-section-title">Criar conta</h2>
             <p className="subtitle">
-              Depois de confirmar seu e-mail, voce podera informar pontos em qualquer grupo publico
+              Depois de confirmar seu e-mail, você poderá informar pontos em qualquer grupo público
               que aceite colaboracao.
             </p>
           </div>

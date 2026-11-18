@@ -31,7 +31,7 @@ export function DeletePointButton({
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel arquivar o ponto.";
+        error instanceof Error ? error.message : "Não foi possível arquivar o ponto.";
       toast.error(message);
       setIsDeleting(false);
     }

@@ -33,9 +33,9 @@ export function PointReviewActions({
         toast.success(
           action === "approve"
             ? hasPendingUpdate
-              ? "Alteracao aprovada."
+              ? "Alteração aprovada."
               : "Ponto aprovado."
-            : "Revisao concluida.",
+            : "Revisão concluída.",
         );
       }
 
@@ -44,7 +44,7 @@ export function PointReviewActions({
       }
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel revisar o ponto.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível revisar o ponto.");
       return false;
     } finally {
       setIsSubmitting(false);
@@ -62,7 +62,7 @@ export function PointReviewActions({
               onClick={() => setReviewModalMode("preview")}
               type="button"
             >
-              Visualizar alteracao
+              Visualizar alteração
             </button>
             <button
               className="button-ghost"
@@ -80,7 +80,7 @@ export function PointReviewActions({
           onClick={() => void handleReview("approve")}
           type="button"
         >
-          {hasPendingUpdate ? "Aprovar alteracao" : "Aprovar ponto"}
+          {hasPendingUpdate ? "Aprovar alteração" : "Aprovar ponto"}
         </button>
         <button
           className="button-ghost danger"
@@ -88,7 +88,7 @@ export function PointReviewActions({
           onClick={() => void handleReview("reject")}
           type="button"
         >
-          {hasPendingUpdate ? "Rejeitar alteracao" : "Rejeitar ponto"}
+          {hasPendingUpdate ? "Rejeitar alteração" : "Rejeitar ponto"}
         </button>
       </div>
       {reviewModalMode ? (

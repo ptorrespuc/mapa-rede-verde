@@ -105,10 +105,10 @@ export function PointTimeline({
       setEvents((current) => [createdEvent, ...current]);
       resetComposer();
       setIsComposerOpen(false);
-      toast.success("Informacoes adicionadas a linha do tempo.");
+      toast.success("Informações adicionadas a linha do tempo.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel adicionar o evento.";
+        error instanceof Error ? error.message : "Não foi possível adicionar o evento.";
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -136,7 +136,7 @@ export function PointTimeline({
         }
 
         if (file.size > MAX_TIMELINE_FILE_SIZE) {
-          setErrorMessage("Cada foto pode ter no maximo 10 MB.");
+          setErrorMessage("Cada foto pode ter no máximo 10 MB.");
           continue;
         }
 
@@ -156,7 +156,7 @@ export function PointTimeline({
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Nao foi possivel preparar uma das fotos da timeline.",
+              : "Não foi possível preparar uma das fotos da timeline.",
           );
         }
       }
@@ -165,7 +165,7 @@ export function PointTimeline({
         const merged = [...current, ...nextPhotos].slice(0, MAX_TIMELINE_FILES);
 
         if (current.length + nextPhotos.length > MAX_TIMELINE_FILES) {
-          setErrorMessage(`Use no maximo ${MAX_TIMELINE_FILES} fotos por evento.`);
+          setErrorMessage(`Use no máximo ${MAX_TIMELINE_FILES} fotos por evento.`);
         }
 
         [...current, ...nextPhotos]
@@ -249,10 +249,10 @@ export function PointTimeline({
       await apiClient.deletePointEvent(pointId, eventId);
       setEvents((current) => current.filter((item) => item.id !== eventId));
       setPendingDeleteEventId((current) => (current === eventId ? null : current));
-      toast.success("Evento excluido com sucesso.");
+      toast.success("Evento excluído com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel excluir o evento.";
+        error instanceof Error ? error.message : "Não foi possível excluir o evento.";
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -267,13 +267,13 @@ export function PointTimeline({
           <div>
             <h2 className="section-title">Adicionar informacoes a linha do tempo</h2>
             <p className="subtitle">
-              Registre fotos, observacoes e atualizacoes relacionadas a este ponto.
+              Registre fotos, observações e atualizações relacionadas a este ponto.
             </p>
           </div>
           {!isComposerOpen ? (
             <div className="form-actions">
               <button className="button" onClick={openComposer} type="button">
-                Adicionar informacoes
+                Adicionar informações
               </button>
             </div>
           ) : (
@@ -312,8 +312,8 @@ export function PointTimeline({
               {!hasConfiguredEventTypes ? (
                 <div className="surface-subtle">
                   <span className="muted">
-                    Esta classificacao nao possui categorias predefinidas. Basta descrever a
-                    informacao e anexar fotos, se quiser.
+                    Esta classificação não possui categorias predefinidas. Basta descrever a
+                    informação e anexar fotos, se quiser.
                   </span>
                 </div>
               ) : null}
@@ -324,7 +324,7 @@ export function PointTimeline({
                   id="event-description"
                   value={description}
                   onChange={(inputEvent) => setDescription(inputEvent.target.value)}
-                  placeholder="Observacoes de campo, decisao tomada ou contexto da manutencao."
+                  placeholder="Observações de campo, decisão tomada ou contexto da manutenção."
                 />
               </div>
 
@@ -412,7 +412,7 @@ export function PointTimeline({
                             onChange={(inputEvent) =>
                               updatePhotoCaption(photo.id, inputEvent.target.value)
                             }
-                            placeholder="Ex.: copa apos poda, raiz exposta, canteiro fechado."
+                            placeholder="Ex.: copa após poda, raiz exposta, canteiro fechado."
                           />
                         </div>
                         <div className="form-actions">
@@ -437,7 +437,7 @@ export function PointTimeline({
 
               <div className="form-actions">
                 <button className="button" disabled={isSubmitting} type="submit">
-                  {isSubmitting ? "Salvando..." : "Salvar informacoes"}
+                  {isSubmitting ? "Salvando..." : "Salvar informações"}
                 </button>
                 <button className="button-ghost" disabled={isSubmitting} onClick={closeComposer} type="button">
                   Cancelar
@@ -449,8 +449,8 @@ export function PointTimeline({
       ) : (
         <section className="panel">
           <p className="subtitle">
-            Voce esta visualizando a linha do tempo em modo leitura. Somente membros com acesso ao
-            grupo podem adicionar informacoes e fotos.
+            Você esta visualizando a linha do tempo em modo leitura. Somente membros com acesso ao
+            grupo podem adicionar informações e fotos.
           </p>
         </section>
       )}
@@ -515,7 +515,7 @@ export function PointTimeline({
                           <div className="timeline-media-placeholder">Imagem indisponivel</div>
                         )}
                         <figcaption className="muted">
-                          {media.caption || "Sem descricao da foto."}
+                          {media.caption || "Sem descrição da foto."}
                         </figcaption>
                         {media.signed_url ? (
                           <div className="form-actions">

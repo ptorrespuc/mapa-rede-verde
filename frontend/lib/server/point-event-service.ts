@@ -29,7 +29,7 @@ export async function listPointEvents(
     return await getPointTimeline(supabase, pointId);
   } catch (error) {
     throw new ApiRouteError(
-      error instanceof Error ? error.message : "Nao foi possivel carregar a timeline.",
+      error instanceof Error ? error.message : "Não foi possível carregar a timeline.",
       {
         status: 400,
         code: "POINT_TIMELINE_LOAD_FAILED",
@@ -71,7 +71,7 @@ export async function createPointEvent(options: {
   const event = (data as PointEventRecord[] | null)?.[0];
 
   if (!event) {
-    throw new ApiRouteError("O evento nao foi criado.", {
+    throw new ApiRouteError("O evento não foi criado.", {
       status: 500,
       code: "POINT_EVENT_NOT_CREATED",
     });
@@ -92,7 +92,7 @@ export async function deletePointEvent(options: {
   const point = await loadPointDetailOrThrow(supabase, pointId);
 
   if (!point.viewer_can_manage) {
-    throw new ApiRouteError("Voce nao tem permissao para excluir este evento.", {
+    throw new ApiRouteError("Você não tem permissão para excluir este evento.", {
       status: 403,
       code: "POINT_EVENT_DELETE_FORBIDDEN",
     });
@@ -115,7 +115,7 @@ export async function deletePointEvent(options: {
   }
 
   if (!eventRecord) {
-    throw new ApiRouteError("Evento nao encontrado.", {
+    throw new ApiRouteError("Evento não encontrado.", {
       status: 404,
       code: "POINT_EVENT_NOT_FOUND",
     });
@@ -203,7 +203,7 @@ async function handleMultipartEventRequest(
   const event = (data as PointEventRecord[] | null)?.[0];
 
   if (!event) {
-    throw new ApiRouteError("O evento nao foi criado.", {
+    throw new ApiRouteError("O evento não foi criado.", {
       status: 500,
       code: "POINT_EVENT_NOT_CREATED",
     });
@@ -270,7 +270,7 @@ async function handleMultipartEventRequest(
     await rollbackEventWithMedia(adminSupabase, event.id, uploadedPaths);
 
     throw new ApiRouteError(
-      error instanceof Error ? error.message : "Nao foi possivel salvar as fotos do evento.",
+      error instanceof Error ? error.message : "Não foi possível salvar as fotos do evento.",
       {
         status: 400,
         code: "POINT_EVENT_MEDIA_UPLOAD_FAILED",
@@ -281,7 +281,7 @@ async function handleMultipartEventRequest(
 
 function validateTimelineFiles(files: File[]) {
   if (files.length > MAX_TIMELINE_FILES) {
-    throw new ApiRouteError(`Envie no maximo ${MAX_TIMELINE_FILES} fotos por evento.`, {
+    throw new ApiRouteError(`Envie no máximo ${MAX_TIMELINE_FILES} fotos por evento.`, {
       status: 400,
       code: "TIMELINE_MEDIA_LIMIT_EXCEEDED",
     });
@@ -296,7 +296,7 @@ function validateTimelineFiles(files: File[]) {
     }
 
     if (file.size > MAX_TIMELINE_FILE_SIZE) {
-      throw new ApiRouteError("Cada foto pode ter no maximo 10 MB.", {
+      throw new ApiRouteError("Cada foto pode ter no máximo 10 MB.", {
         status: 400,
         code: "TIMELINE_MEDIA_FILE_TOO_LARGE",
       });

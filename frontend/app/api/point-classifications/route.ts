@@ -25,13 +25,13 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
 
   if (!body?.name) {
-    return NextResponse.json({ error: "Nome da classificacao e obrigatorio." }, { status: 400 });
+    return NextResponse.json({ error: "Nome da classificação é obrigatório." }, { status: 400 });
   }
 
   const { data, error } = await supabase.rpc("create_point_classification", {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const classification = (data as PointClassificationRecord[] | null)?.[0];
 
   if (!classification) {
-    return NextResponse.json({ error: "A classificacao nao foi criada." }, { status: 500 });
+    return NextResponse.json({ error: "A classificação não foi criada." }, { status: 500 });
   }
 
   return NextResponse.json(normalizePointClassification(classification), { status: 201 });

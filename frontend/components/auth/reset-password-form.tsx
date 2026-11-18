@@ -41,7 +41,7 @@ export function ResetPasswordForm() {
       setIsCheckingSession(false);
 
       if (!session && !hashHint.includes("access_token")) {
-        setErrorMessage("Link de recuperacao invalido ou expirado.");
+        setErrorMessage("Link de recuperacao inválido ou expirado.");
       }
     }
 
@@ -94,14 +94,14 @@ export function ResetPasswordForm() {
       }
 
       await supabase.auth.signOut();
-      setInfoMessage("Senha redefinida com sucesso. Faca o login com a nova senha.");
+      setInfoMessage("Senha redefinida com sucesso. Faça o login com a nova senha.");
       toast.success("Senha redefinida com sucesso.");
       window.setTimeout(() => {
         router.replace("/login");
       }, 1200);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel redefinir a senha.";
+        error instanceof Error ? error.message : "Não foi possível redefinir a senha.";
       setErrorMessage(message);
       toast.error(message);
     } finally {

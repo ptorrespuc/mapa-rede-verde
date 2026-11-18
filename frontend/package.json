@@ -25,6 +25,7 @@
     "@capacitor/core": "^8.2.0",
     "@capacitor/geolocation": "^8.1.0",
     "@googlemaps/js-api-loader": "^2.0.2",
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
     "lucide-react": "^0.577.0",

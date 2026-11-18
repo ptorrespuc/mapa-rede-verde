@@ -45,7 +45,7 @@ export async function processImageForUpload(file: File): Promise<ProcessedUpload
     const context = canvas.getContext("2d");
 
     if (!context) {
-      throw new Error("Nao foi possivel preparar a imagem para upload.");
+      throw new Error("Não foi possível preparar a imagem para upload.");
     }
 
     context.drawImage(image, 0, 0, nextWidth, nextHeight);
@@ -55,7 +55,7 @@ export async function processImageForUpload(file: File): Promise<ProcessedUpload
       canvas.toBlob(
         (nextBlob) => {
           if (!nextBlob) {
-            reject(new Error("Nao foi possivel gerar a imagem tratada."));
+            reject(new Error("Não foi possível gerar a imagem tratada."));
             return;
           }
 
@@ -118,7 +118,7 @@ function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Nao foi possivel ler a imagem selecionada."));
+    image.onerror = () => reject(new Error("Não foi possível ler a imagem selecionada."));
     image.src = source;
   });
 }

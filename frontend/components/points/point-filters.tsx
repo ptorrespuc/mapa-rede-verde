@@ -15,10 +15,10 @@ export function PointFilters({ classifications, value, onChange }: PointFiltersP
     <div className="field toolbar-field">
       <label className="toolbar-label" htmlFor="point-filter">
         <Filter aria-hidden="true" size={15} />
-        <span>Classificacao</span>
+        <span>Classificação</span>
       </label>
       <select id="point-filter" value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="all">Todas as classificacoes</option>
+        <option value="all">Todas as classificações</option>
         {classifications.map((classification) => (
           <option key={classification.id} value={classification.id}>
             {classification.name}

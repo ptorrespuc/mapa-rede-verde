@@ -14,13 +14,13 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Payload de atualizacao invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de atualização inválido." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = {};
@@ -58,7 +58,7 @@ export async function PATCH(
   const pointEventType = ((rows ?? []) as PointEventTypeRecord[]).find((item) => item.id === id);
 
   if (!pointEventType) {
-    return NextResponse.json({ error: "Tipo de evento nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Tipo de evento não encontrado." }, { status: 404 });
   }
 
   return NextResponse.json(pointEventType);

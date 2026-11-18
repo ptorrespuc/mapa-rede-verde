@@ -12,9 +12,9 @@ export default async function NotificationsPage() {
       <div className="page-header">
         <div>
           <p className="eyebrow">Acompanhamento</p>
-          <h1>Notificacoes</h1>
+          <h1>Notificações</h1>
           <p className="subtitle">
-            Aprovacoes feitas por outro usuario em pontos criados por voce.
+            Aprovacoes feitas por outro usuário em pontos criados por você.
           </p>
         </div>
       </div>
@@ -23,7 +23,7 @@ export default async function NotificationsPage() {
         {!notifications.length ? (
           <div className="surface-subtle">
             <span className="muted">
-              Ainda nao ha aprovacoes de outros usuarios para pontos criados por voce.
+              Ainda não ha aprovacoes de outros usuários para pontos criados por você.
             </span>
           </div>
         ) : (

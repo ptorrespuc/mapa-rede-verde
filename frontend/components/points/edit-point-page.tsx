@@ -6,8 +6,13 @@ import { toast } from "sonner";
 
 import { DeletePointButton } from "@/components/points/delete-point-button";
 import { PointForm } from "@/components/points/point-form";
-import { apiClient } from "@/lib/api-client";
 import { storeFlashFeedback } from "@/lib/flash-feedback";
+import { getLastMapHref } from "@/lib/map-view-state";
+import {
+  buildPointFormInitialValues,
+  describePointUpdate,
+  submitPointUpdate,
+} from "@/lib/point-update";
 import type {
   CreatePointPayload,
   GroupRecord,
@@ -41,42 +46,21 @@ export function EditPointPage({
     setErrorMessage(null);
 
     try {
-      const updatedPoint = await apiClient.updatePoint(point.id, {
-        groupId: payload.groupId,
-        classificationId: payload.classificationId,
-        tagIds: payload.tagIds ?? [],
-        title: payload.title,
-        speciesId: payload.speciesId?.trim() ? payload.speciesId : null,
-        description: payload.description,
-        isPublic: payload.isPublic,
-        longitude: payload.longitude,
-        latitude: payload.latitude,
-        photos: payload.photos,
-        photoUpdateMode: payload.photoUpdateMode,
-        preservePreviousStateOnReclassification:
-          payload.preservePreviousStateOnReclassification,
-      });
+      const updatedPoint = await submitPointUpdate(point.id, payload);
+      const outcome = describePointUpdate(updatedPoint);
       storeFlashFeedback({
         scope: `/points/${point.id}`,
-        title:
-          updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"
-            ? "Alteracao enviada para aprovacao"
-            : "Ponto atualizado com sucesso",
-        message:
-          updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"
-            ? "A solicitacao foi registrada e agora aguarda a revisao do grupo."
-            : "Os dados do ponto ja refletem a atualizacao enviada.",
+        title: outcome.title,
+        message: outcome.message,
+        actionHref: getLastMapHref(point.id),
+        actionLabel: "Voltar ao mapa",
       });
-      toast.success(
-        updatedPoint.has_pending_update || updatedPoint.approval_status === "pending"
-          ? "Alteracao enviada para aprovacao."
-          : "Ponto atualizado com sucesso.",
-      );
+      toast.success(outcome.toast);
       router.push(`/points/${point.id}`);
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel atualizar o ponto.";
+        error instanceof Error ? error.message : "Não foi possível atualizar o ponto.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -89,7 +73,7 @@ export function EditPointPage({
           <p className="eyebrow">Editar ponto</p>
           <h1>{point.title}</h1>
           <p className="subtitle">
-            Atualize classificacao, coordenadas, visibilidade e demais dados operacionais.
+            Atualize classificação, coordenadas, visibilidade e demais dados operacionais.
           </p>
         </div>
       </div>
@@ -103,21 +87,11 @@ export function EditPointPage({
           isEditing
           speciesCatalog={speciesCatalog}
           speciesAdminHref={speciesAdminHref}
-          initialValues={{
-            groupId: point.group_id,
-            classificationId: point.classification_id,
-            tagIds: (point.tags ?? []).map((tag) => tag.id),
-            title: point.title,
-            speciesId: point.species_id ?? undefined,
-            description: point.description ?? undefined,
-            isPublic: point.is_public,
-            longitude: point.longitude,
-            latitude: point.latitude,
-          }}
+          initialValues={buildPointFormInitialValues(point)}
           onCancel={() => router.push(`/points/${point.id}`)}
           onSubmit={handleSubmit}
-          submitLabel="Salvar alteracoes"
-          groupLabel="Grupo de referencia"
+          submitLabel="Salvar alterações"
+          groupLabel="Grupo de referência"
           enableInitialPhotoUpload
         />
       </section>
@@ -127,7 +101,7 @@ export function EditPointPage({
           <div>
             <h2 className="section-title">Arquivar ponto</h2>
             <p className="subtitle">
-              O ponto sai das listagens operacionais, mas o historico e as fotos permanecem
+              O ponto sai das listagens operacionais, mas o histórico e as fotos permanecem
               preservados.
             </p>
           </div>

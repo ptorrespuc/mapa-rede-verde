@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const contentType = request.headers.get("content-type") ?? "";
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   const parsed = parsePointInput(body);
 
   if (!parsed) {
-    return NextResponse.json({ error: "Payload de ponto invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de ponto inválido." }, { status: 400 });
   }
 
   const point = await createPointRecord(supabase, parsed);
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     await rollbackPointCreate(adminSupabase, point.data.id);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Nao foi possivel salvar as tags do ponto." },
+      { error: error instanceof Error ? error.message : "Não foi possível salvar as tags do ponto." },
       { status: 400 },
     );
   }
@@ -196,7 +196,7 @@ async function createPointRecord(
   const point = (data as PointRecord[] | null)?.[0];
 
   if (!point) {
-    return { error: "O ponto nao foi criado.", status: 500 as const };
+    return { error: "O ponto não foi criado.", status: 500 as const };
   }
 
   return { data: point };
@@ -224,7 +224,7 @@ async function handleMultipartPointRequest(
   });
 
   if (!parsed) {
-    return NextResponse.json({ error: "Payload de ponto invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de ponto inválido." }, { status: 400 });
   }
 
   const files = formData
@@ -234,7 +234,7 @@ async function handleMultipartPointRequest(
 
   if (files.length > MAX_POINT_FILES) {
     return NextResponse.json(
-      { error: `Envie no maximo ${MAX_POINT_FILES} fotos no cadastro inicial.` },
+      { error: `Envie no máximo ${MAX_POINT_FILES} fotos no cadastro inicial.` },
       { status: 400 },
     );
   }
@@ -299,7 +299,7 @@ async function handleMultipartPointRequest(
     await rollbackPointCreate(adminSupabase, createdPoint.data.id);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Nao foi possivel salvar a foto do ponto." },
+      { error: error instanceof Error ? error.message : "Não foi possível salvar a foto do ponto." },
       { status: 400 },
     );
   }

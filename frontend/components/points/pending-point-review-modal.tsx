@@ -58,7 +58,7 @@ export function PendingPointReviewModal({
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Nao foi possivel carregar a revisao da alteracao.",
+              : "Não foi possível carregar a revisão da alteração.",
           );
         }
       } finally {
@@ -104,7 +104,7 @@ export function PendingPointReviewModal({
           </div>
         ) : errorMessage ? (
           <div className="surface-subtle stack-xs">
-            <strong>Nao foi possivel abrir a revisao.</strong>
+            <strong>Não foi possível abrir a revisão.</strong>
             <span className="muted">{errorMessage}</span>
           </div>
         ) : summary ? (
@@ -115,7 +115,7 @@ export function PendingPointReviewModal({
                 onClick={() => setMode("preview")}
                 type="button"
               >
-                Visualizar alteracao
+                Visualizar alteração
               </button>
               <button
                 className={mode === "diff" ? "button-secondary" : "button-ghost"}
@@ -150,7 +150,7 @@ export function PendingPointReviewModal({
                 onClick={() => void onReviewAction("approve")}
                 type="button"
               >
-                {hasPendingUpdate ? "Aprovar alteracao" : "Aprovar ponto"}
+                {hasPendingUpdate ? "Aprovar alteração" : "Aprovar ponto"}
               </button>
               <button
                 className="button-ghost danger"
@@ -158,7 +158,7 @@ export function PendingPointReviewModal({
                 onClick={() => void onReviewAction("reject")}
                 type="button"
               >
-                {hasPendingUpdate ? "Rejeitar alteracao" : "Rejeitar ponto"}
+                {hasPendingUpdate ? "Rejeitar alteração" : "Rejeitar ponto"}
               </button>
             </>
           ) : null}
@@ -176,9 +176,9 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
     <div className="stack-md">
       <div className="pending-preview-grid">
         <InfoCard label="Grupo" value={summary.proposed.groupName} />
-        <InfoCard label="Classificacao" value={summary.proposed.classificationName} />
-        <InfoCard label="Titulo" value={summary.proposed.title} />
-        <InfoCard label="Especie" value={summary.proposed.speciesName ?? "Sem especie"} />
+        <InfoCard label="Classificação" value={summary.proposed.classificationName} />
+        <InfoCard label="Título" value={summary.proposed.title} />
+        <InfoCard label="Espécie" value={summary.proposed.speciesName ?? "Sem espécie"} />
         <InfoCard
           label="Tags"
           value={summary.proposed.tagNames.length ? summary.proposed.tagNames.join(", ") : "Sem tags"}
@@ -186,15 +186,15 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
         />
         <InfoCard
           label="Visibilidade"
-          value={summary.proposed.isPublic ? "Publico" : "Privado"}
+          value={summary.proposed.isPublic ? "Público" : "Privado"}
         />
         <InfoCard
-          label="Posicao no mapa"
+          label="Posição no mapa"
           value={`${summary.proposed.latitude.toFixed(6)}, ${summary.proposed.longitude.toFixed(6)}`}
         />
         <InfoCard
-          label="Descricao"
-          value={summary.proposed.description ?? "Sem descricao"}
+          label="Descrição"
+          value={summary.proposed.description ?? "Sem descrição"}
           multiline
         />
       </div>
@@ -206,8 +206,8 @@ function PreviewModeContent({ summary }: { summary: PendingPointReviewSummary })
           </div>
           {summary.pendingMediaMode === "unspecified" ? (
             <span className="muted">
-              Existem fotos pendentes ligadas a esta alteracao. O modo exato de aplicacao nao foi
-              registrado, entao elas aparecem aqui para revisao.
+              Existem fotos pendentes ligadas a esta alteração. O modo exato de aplicacao não foi
+              registrado, entao elas aparecem aqui para revisão.
             </span>
           ) : null}
           <div>
@@ -247,7 +247,7 @@ function DiffModeContent({ summary }: { summary: PendingPointReviewSummary }) {
       ) : (
         <div className="surface-subtle">
           <span className="muted">
-            Nenhum campo textual foi alterado. Esta revisao afeta apenas as fotos associadas ao
+            Nenhum campo textual foi alterado. Esta revisão afeta apenas as fotos associadas ao
             ponto.
           </span>
         </div>
@@ -342,5 +342,5 @@ function getMediaModeLabel(mode: PendingPointReviewSummary["pendingMediaMode"]) 
     return "fotos atuais serao substituidas";
   }
 
-  return "fotos pendentes para revisao";
+  return "fotos pendentes para revisão";
 }

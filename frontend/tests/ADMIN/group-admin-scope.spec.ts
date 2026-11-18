@@ -43,7 +43,7 @@ test.describe("escopo administrativo de group_admin", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       await expect(
-        dialog.getByText("Dados cadastrais so podem ser alterados por superusuario."),
+        dialog.getByText("Dados cadastrais só podem ser alterados por superusuário."),
       ).toBeVisible();
 
       const membershipGroupSelect = dialog.locator('select[id^="user-membership-group-"]');

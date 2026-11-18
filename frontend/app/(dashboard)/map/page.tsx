@@ -4,6 +4,7 @@ import { MapDashboard } from "@/components/map/map-dashboard";
 import { getCurrentUserContext } from "@/lib/auth";
 import { withGroupLogo, withPointGroupLogo } from "@/lib/group-logos";
 import { attachPointTagsToPoints, loadPointTags } from "@/lib/point-tags";
+import { parseMapView } from "@/lib/map-view-params";
 import { filterVisiblePoints } from "@/lib/point-visibility";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
@@ -17,7 +18,14 @@ import type {
 export default async function MapPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ grupo?: string; group?: string }>;
+  searchParams?: Promise<{
+    grupo?: string;
+    group?: string;
+    lat?: string;
+    lng?: string;
+    z?: string;
+    ponto?: string;
+  }>;
 }) {
   const context = await getCurrentUserContext();
   const cookieStore = await cookies();
@@ -72,6 +80,12 @@ export default async function MapPage({
       initialPoints={initialPointsWithTags.map(withPointGroupLogo)}
       initialGroupCode={requestedGroup?.code ?? null}
       initialGroupSelectionWasImplicit={!requestedMapScope && Boolean(preferredGroup)}
+      initialView={parseMapView({
+        lat: resolvedSearchParams?.lat,
+        lng: resolvedSearchParams?.lng,
+        z: resolvedSearchParams?.z,
+      })}
+      initialPointId={resolvedSearchParams?.ponto?.trim() || null}
       visibleGroups={visibleGroups}
       submissionGroups={context?.submission_groups ?? []}
       approvableGroups={context?.approvable_groups ?? []}

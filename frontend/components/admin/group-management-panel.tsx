@@ -38,7 +38,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
       );
       setUserId("");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel associar o usuario.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível associar o usuário.");
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +49,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
       <div className="panel stack-sm">
         <h2 className="section-title">Sem grupos administraveis</h2>
         <p className="subtitle">
-          E necessario ser `group_admin` ou `super_admin` para usar este painel.
+          E necessário ser `group_admin` ou `super_admin` para usar este painel.
         </p>
       </div>
     );
@@ -86,7 +86,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
             <div className="stack-xs">
               <h2 className="section-title">Associar usuario ao grupo</h2>
               <p className="subtitle">
-                Use o `public.users.id` para adicionar o usuario a outro grupo.
+                Use o `public.users.id` para adicionar o usuário a outro grupo.
               </p>
             </div>
             <span className="badge">Vinculo</span>
@@ -94,7 +94,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
 
           <div className="surface-subtle">
             <span className="muted">
-              O papel define se a pessoa apenas opera ou se tambem administra o grupo.
+              O papel define se a pessoa apenas opera ou se também administra o grupo.
             </span>
           </div>
 
@@ -145,7 +145,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
 
             <div className="form-actions">
               <button className="button" disabled={isSubmitting} type="submit">
-                {isSubmitting ? "Salvando..." : "Associar usuario"}
+                {isSubmitting ? "Salvando..." : "Associar usuário"}
               </button>
             </div>
           </form>
@@ -168,7 +168,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
               opera como colaborador.
             </span>
             <span className="muted">
-              4. Usuarios autenticados tambem podem colaborar em grupos publicos com colaboracao aberta.
+              4. Usuários autenticados também podem colaborar em grupos públicos com colaboracao aberta.
             </span>
           </div>
         </section>
@@ -191,7 +191,7 @@ export function GroupManagementPanel({ groups }: GroupManagementPanelProps) {
                 <span className="muted">{group.id}</span>
               </div>
               <span className="badge">
-                {group.is_public ? "publico" : "privado"} ·{" "}
+                {group.is_public ? "público" : "privado"} ·{" "}
                 {group.my_role ? USER_ROLE_LABELS[group.my_role] : USER_ROLE_LABELS.group_admin}
               </span>
             </div>

@@ -21,7 +21,7 @@ interface PointCoordinatePickerModalProps {
 
 function formatCoordinateLabel(coordinates: CoordinateValue | null) {
   if (!coordinates) {
-    return "Arraste o mapa ou use sua localizacao para definir o novo ponto.";
+    return "Arraste o mapa ou use sua localização para definir o novo ponto.";
   }
 
   return `Latitude ${coordinates.latitude.toFixed(6)} | Longitude ${coordinates.longitude.toFixed(6)}`;
@@ -57,7 +57,7 @@ export function PointCoordinatePickerModal({
     event.preventDefault();
 
     if (!addressQuery.trim()) {
-      toast.error("Informe um endereco para buscar.");
+      toast.error("Informe um endereço para buscar.");
       return;
     }
 
@@ -67,11 +67,11 @@ export function PointCoordinatePickerModal({
       const result = await mapRef.current?.searchAddress(addressQuery.trim());
 
       if (!result?.success) {
-        toast.error(result?.message ?? "Nao foi possivel localizar o endereco.");
+        toast.error(result?.message ?? "Não foi possível localizar o endereço.");
         return;
       }
 
-      toast.success(result.message ?? "Endereco localizado no mapa.");
+      toast.success(result.message ?? "Endereço localizado no mapa.");
     } finally {
       setIsSearchingAddress(false);
     }
@@ -84,11 +84,11 @@ export function PointCoordinatePickerModal({
       const result = await mapRef.current?.centerOnCurrentLocation();
 
       if (!result?.success) {
-        toast.error(result?.message ?? "Nao foi possivel centralizar o mapa.");
+        toast.error(result?.message ?? "Não foi possível centralizar o mapa.");
         return;
       }
 
-      toast.success(result.message ?? "Mapa centralizado na sua posicao atual.");
+      toast.success(result.message ?? "Mapa centralizado na sua posição atual.");
     } finally {
       setIsCenteringOnCurrentLocation(false);
     }
@@ -127,7 +127,7 @@ export function PointCoordinatePickerModal({
             </button>
           </div>
           <p className="subtitle">
-            O mapa abre centralizado na posicao atual do ponto. No computador, clique com o botao
+            O mapa abre centralizado na posição atual do ponto. No computador, clique com o botão
             direito para atualizar. No celular, arraste o mapa e use o centro da tela.
           </p>
         </div>
@@ -136,13 +136,13 @@ export function PointCoordinatePickerModal({
           <form className="map-search-form coordinate-picker-search" onSubmit={handleAddressSearch}>
             <label className="toolbar-label" htmlFor="point-coordinate-address-search">
               <Search aria-hidden="true" size={15} />
-              <span>Buscar endereco</span>
+              <span>Buscar endereço</span>
             </label>
             <div className="map-search-row">
               <input
                 id="point-coordinate-address-search"
                 onChange={(event) => setAddressQuery(event.target.value)}
-                placeholder="Rua, bairro, numero ou referencia"
+                placeholder="Rua, bairro, número ou referência"
                 value={addressQuery}
               />
               <button className="button-ghost" disabled={isSearchingAddress} type="submit">
@@ -164,18 +164,18 @@ export function PointCoordinatePickerModal({
               type="button"
             >
               <LocateFixed aria-hidden="true" size={15} />
-              {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posicao"}
+              {isCenteringOnCurrentLocation ? "Localizando..." : "Minha posição"}
             </button>
           </div>
         </div>
 
         <div className="map-creation-hint" role="note">
           <span className="desktop-only">
-            Clique com o botao direito no mapa para usar imediatamente a nova coordenada.
+            Clique com o botão direito no mapa para usar imediatamente a nova coordenada.
           </span>
           <span className="mobile-only">
-            Arraste o mapa ate o local desejado. O alvo central indica a coordenada que sera
-            aplicada ao tocar no botao abaixo.
+            Arraste o mapa até o local desejado. O alvo central indica a coordenada que será
+            aplicada ao tocar no botão abaixo.
           </span>
         </div>
 

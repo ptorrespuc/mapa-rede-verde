@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const { data: isSuperAdmin, error: superAdminError } = await supabase.rpc(
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   if (!isSuperAdmin) {
     return NextResponse.json(
-      { error: "Apenas superadministradores podem cadastrar especies." },
+      { error: "Apenas superadministradores podem cadastrar espécies." },
       { status: 403 },
     );
   }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   const species = (data as SpeciesRecord[] | null)?.[0];
 
   if (!species) {
-    return NextResponse.json({ error: "A especie nao foi criada." }, { status: 500 });
+    return NextResponse.json({ error: "A espécie não foi criada." }, { status: 500 });
   }
 
   return NextResponse.json(species, { status: 201 });

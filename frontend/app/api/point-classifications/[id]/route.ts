@@ -18,13 +18,13 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Payload de atualizacao invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Payload de atualização inválido." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = {};
@@ -85,7 +85,7 @@ export async function PATCH(
   const classification = (rows ?? []).find((item) => item.id === id);
 
   if (!classification) {
-    return NextResponse.json({ error: "Classificacao nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Classificação não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json(classification);
@@ -102,7 +102,7 @@ export async function DELETE(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const adminSupabase = createAdminSupabaseClient();
@@ -138,7 +138,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "A exclusao logica da classificacao depende da migration nova do banco. O codigo ja foi preparado, mas o schema remoto ainda precisa ser atualizado.",
+            "A exclusão logica da classificação depende da migration nova do banco. O código já foi preparado, mas o schema remoto ainda precisa ser atualizado.",
         },
         { status: 409 },
       );
@@ -157,7 +157,7 @@ export async function DELETE(
     const classification = (rows ?? []).find((item) => item.id === id);
 
     if (!classification) {
-      return NextResponse.json({ error: "Classificacao nao encontrada." }, { status: 404 });
+      return NextResponse.json({ error: "Classificação não encontrada." }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -177,7 +177,7 @@ export async function DELETE(
   }
 
   if (!deletedRows?.length) {
-    return NextResponse.json({ error: "Classificacao nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Classificação não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json({

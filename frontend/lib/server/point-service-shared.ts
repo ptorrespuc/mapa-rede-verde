@@ -30,7 +30,7 @@ export async function loadPointDetailOrThrow(
   const point = (data as PointDetailRecord[] | null)?.[0];
 
   if (!point) {
-    throw new ApiRouteError("Ponto nao encontrado.", {
+    throw new ApiRouteError("Ponto não encontrado.", {
       status: 404,
       code: "POINT_NOT_FOUND",
     });

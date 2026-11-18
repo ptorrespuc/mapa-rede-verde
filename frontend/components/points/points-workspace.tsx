@@ -73,7 +73,7 @@ export function PointsWorkspace({
   );
   const selectedGroup = visibleGroups.find((group) => group.id === groupFilter) ?? null;
   const currentGroupSummary = selectedGroup ?? (visibleGroups.length === 1 ? visibleGroups[0] : null);
-  const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visiveis";
+  const groupHeading = currentGroupSummary?.name ?? "Todos os grupos visíveis";
   const groupSubheading = currentGroupSummary
     ? null
     : `${visibleGroups.length} grupos no filtro atual`;
@@ -111,7 +111,7 @@ export function PointsWorkspace({
           point.species_common_name ??
           point.species_name ??
           point.species_scientific_name ??
-          "Especie sem nome",
+          "Espécie sem nome",
       });
     }
 
@@ -139,7 +139,7 @@ export function PointsWorkspace({
       } catch (error) {
         if (!ignore) {
           setErrorMessage(
-            error instanceof Error ? error.message : "Nao foi possivel carregar os pontos.",
+            error instanceof Error ? error.message : "Não foi possível carregar os pontos.",
           );
         }
       } finally {
@@ -225,27 +225,27 @@ export function PointsWorkspace({
       toast.success(
         action === "approve"
           ? currentPoint?.has_pending_update
-            ? "Alteracao aprovada."
+            ? "Alteração aprovada."
             : "Ponto aprovado."
-          : "Revisao concluida.",
+          : "Revisão concluída.",
       );
       setFeedback({
         title:
           action === "approve"
             ? currentPoint?.has_pending_update
-              ? "Alteracao aprovada"
+              ? "Alteração aprovada"
               : "Ponto aprovado"
             : "Ponto rejeitado",
         message:
           action === "approve"
-            ? "A listagem ja reflete a decisao tomada para este registro."
-            : "O ponto continua visivel apenas para os perfis com acesso de revisao.",
+            ? "A listagem já reflete a decisão tomada para este registro."
+            : "O ponto continua visível apenas para os perfis com acesso de revisão.",
         actionHref: currentPoint ? `/points/${currentPoint.id}` : undefined,
         actionLabel: currentPoint ? "Abrir detalhe" : undefined,
       });
       await refreshPoints();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel revisar o ponto.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível revisar o ponto.");
     }
   }
 
@@ -298,7 +298,7 @@ export function PointsWorkspace({
   }, [points, selectedSpeciesIds, selectedTagIds, visibleSpeciesOptions, visibleTagOptions]);
   const desktopGroupSwitcherLabel =
     groupFilter === "all"
-      ? "Todos os grupos visiveis"
+      ? "Todos os grupos visíveis"
       : isGroupSelectionImplicit
         ? "Escolher grupo"
         : "Trocar grupo";
@@ -315,15 +315,15 @@ export function PointsWorkspace({
     if (classificationFilter !== "all") {
       const classificationName =
         classifications.find((classification) => classification.id === classificationFilter)?.name ??
-        "Classificacao filtrada";
+        "Classificação filtrada";
       labels.push(classificationName);
     }
 
     if (hasSpeciesRestriction) {
       labels.push(
         selectedSpeciesIds.length
-          ? `${selectedSpeciesIds.length} especies`
-          : "Nenhuma especie",
+          ? `${selectedSpeciesIds.length} espécies`
+          : "Nenhuma espécie",
       );
     }
 
@@ -336,7 +336,7 @@ export function PointsWorkspace({
     }
 
     if (mineOnly !== defaultMineOnly) {
-      labels.push(mineOnly ? "Meus pontos" : "Todos os pontos visiveis");
+      labels.push(mineOnly ? "Meus pontos" : "Todos os pontos visíveis");
     }
 
     return labels;
@@ -464,7 +464,7 @@ export function PointsWorkspace({
             onClick={() => setIsTagFilterOpen((current) => !current)}
             type="button"
           >
-            {isTagFilterOpen ? "Ocultar filtros avancados" : "Filtros avancados"}
+            {isTagFilterOpen ? "Ocultar filtros avançados" : "Filtros avançados"}
           </button>
           <label className="inline-toggle">
             <input
@@ -519,9 +519,9 @@ export function PointsWorkspace({
           <div className="surface-subtle point-tag-filter-panel stack-sm">
             <div className="panel-header">
               <div className="stack-xs">
-                <strong>Especies</strong>
+                <strong>Espécies</strong>
                 <span className="muted">
-                  O filtro por especie aparece quando houver pontos de classificacoes que usam especies.
+                  O filtro por espécie aparece quando houver pontos de classificações que usam espécies.
                 </span>
               </div>
               {visibleSpeciesOptions.length ? (
@@ -555,7 +555,7 @@ export function PointsWorkspace({
               </div>
             ) : (
               <span className="muted">
-                Nenhuma especie disponivel para o filtro atual.
+                Nenhuma espécie disponível para o filtro atual.
               </span>
             )}
 
@@ -564,8 +564,8 @@ export function PointsWorkspace({
                 <strong>Tags</strong>
                 <span className="muted">
                   {classificationFilter === "all"
-                    ? "Escolha uma classificacao para exibir as tags associadas."
-                    : "As tags da classificacao selecionada aparecem marcadas por padrao."}
+                    ? "Escolha uma classificação para exibir as tags associadas."
+                    : "As tags da classificação selecionada aparecem marcadas por padrão."}
                 </span>
               </div>
               {classificationFilter !== "all" && visibleTagOptions.length ? (
@@ -596,7 +596,7 @@ export function PointsWorkspace({
                 </div>
               ) : (
                 <span className="muted">
-                  Esta classificacao ainda nao possui tags cadastradas.
+                  Esta classificação ainda não possui tags cadastradas.
                 </span>
               )
             ) : null}
@@ -712,7 +712,7 @@ export function PointsWorkspace({
                 type="button"
               >
                 <div className="stack-xs">
-                  <strong>Todos os grupos visiveis</strong>
+                  <strong>Todos os grupos visíveis</strong>
                   <span className="muted">Exibe os grupos acessiveis no seu perfil atual.</span>
                 </div>
               </button>

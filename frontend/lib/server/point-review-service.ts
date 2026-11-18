@@ -42,7 +42,7 @@ export async function parsePointReviewAction(request: Request): Promise<PointRev
     body?.action === "reject" ? "reject" : body?.action === "approve" ? "approve" : null;
 
   if (!action) {
-    throw new ApiRouteError("Acao de revisao invalida.", {
+    throw new ApiRouteError("Acao de revisão inválida.", {
       status: 400,
       code: "INVALID_REVIEW_ACTION",
     });
@@ -87,7 +87,7 @@ export async function reviewPointChange(options: {
   const point = (data as PointRecord[] | null)?.[0];
 
   if (!point) {
-    throw new ApiRouteError("Ponto nao encontrado.", {
+    throw new ApiRouteError("Ponto não encontrado.", {
       status: 404,
       code: "POINT_NOT_FOUND",
     });
@@ -145,7 +145,7 @@ export async function reviewPointChange(options: {
     throw new ApiRouteError(
       error instanceof Error
         ? error.message
-        : "A revisao foi concluida, mas o processamento das fotos falhou.",
+        : "A revisão foi concluída, mas o processamento das fotos falhou.",
       {
         status: 400,
         code: "POINT_REVIEW_POST_PROCESSING_FAILED",

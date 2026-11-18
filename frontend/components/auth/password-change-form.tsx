@@ -45,7 +45,7 @@ export function PasswordChangeForm() {
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel atualizar a senha.";
+        error instanceof Error ? error.message : "Não foi possível atualizar a senha.";
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -59,7 +59,7 @@ export function PasswordChangeForm() {
         <p className="eyebrow">Conta</p>
         <h1 className="section-title">Trocar senha</h1>
         <p className="subtitle">
-          Atualize sua senha sempre que quiser. A sessao atual continua valida depois da troca.
+          Atualize sua senha sempre que quiser. A sessão atual continua valida depois da troca.
         </p>
       </div>
 

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const context = await getCurrentUserContext();
 
   if (!context) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   if (!context.is_super_admin) {
@@ -45,13 +45,13 @@ export async function POST(request: Request) {
       : await parseJsonGroupRequest(request);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Payload de grupo invalido." },
+      { error: error instanceof Error ? error.message : "Payload de grupo inválido." },
       { status: 400 },
     );
   }
 
   if (!parsed.name) {
-    return NextResponse.json({ error: "Nome do grupo e obrigatorio." }, { status: 400 });
+    return NextResponse.json({ error: "Nome do grupo é obrigatório." }, { status: 400 });
   }
 
   let { data, error } = await supabase.rpc("create_group", {
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   const createdGroup = (data as GroupRecord[] | null)?.[0];
 
   if (!createdGroup) {
-    return NextResponse.json({ error: "O grupo nao foi criado." }, { status: 500 });
+    return NextResponse.json({ error: "O grupo não foi criado." }, { status: 500 });
   }
 
   if (parsed.logoFile) {
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
           error:
             uploadError instanceof Error
               ? uploadError.message
-              : "Nao foi possivel salvar a logo do grupo.",
+              : "Não foi possível salvar a logo do grupo.",
         },
         { status: 400 },
       );
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     .find((item) => item.id === createdGroup.id);
 
   if (!group) {
-    return NextResponse.json({ error: "O grupo nao foi encontrado apos a criacao." }, { status: 404 });
+    return NextResponse.json({ error: "O grupo não foi encontrado após a criação." }, { status: 404 });
   }
 
   return NextResponse.json(group, { status: 201 });
@@ -186,7 +186,7 @@ function validateLogoFile(file: File) {
   }
 
   if (file.size > MAX_LOGO_FILE_SIZE) {
-    throw new Error("A logo pode ter no maximo 5 MB.");
+    throw new Error("A logo pode ter no máximo 5 MB.");
   }
 }
 

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { getLastMapHref } from "@/lib/map-view-state";
 
 interface AppShellProps {
   userName: string | null;
@@ -38,14 +39,21 @@ export function AppShell({
   const pathname = usePathname();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  // O link do mapa reabre a ultima posicao vista (atualizado a cada troca de pagina).
+  const [mapHref, setMapHref] = useState("/map");
+
+  useEffect(() => {
+    setMapHref(getLastMapHref());
+  }, [pathname]);
+
   const navItems: Array<{ href: string; label: string; icon: LucideIcon }> = [
     { href: "/map", label: "Mapa", icon: Map },
     ...(isAuthenticated && hasPointWorkspace
       ? [{ href: "/points", label: "Pontos", icon: List }]
       : []),
-    ...(isAuthenticated ? [{ href: "/notifications", label: "Notificacoes", icon: Bell }] : []),
+    ...(isAuthenticated ? [{ href: "/notifications", label: "Notificações", icon: Bell }] : []),
     ...(isSuperAdmin || hasGroupAdmin
-      ? [{ href: "/admin", label: "Administracao", icon: Shield }]
+      ? [{ href: "/admin", label: "Administração", icon: Shield }]
       : []),
   ];
 
@@ -73,8 +81,8 @@ export function AppShell({
         <div className="topbar-main">
           <div className="topbar-leading">
             <div className="brand-block">
-              <span className="brand-kicker">Gestao geoambiental</span>
-              <Link className="brand-link" href="/map">
+              <span className="brand-kicker">Gestão geoambiental</span>
+              <Link className="brand-link" href={mapHref}>
                 <h1 className="brand-title">
                   <Leaf aria-hidden="true" size={16} />
                   <span>Mapa Rede Verde</span>
@@ -86,7 +94,7 @@ export function AppShell({
               {navItems.map((item) => (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href === "/map" ? mapHref : item.href}
                   className={`nav-link${pathname === item.href || pathname.startsWith(`${item.href}/`) ? " active" : ""}`}
                 >
                   <item.icon aria-hidden="true" size={15} />
@@ -105,7 +113,7 @@ export function AppShell({
                   onClick={() => setIsAccountMenuOpen((current) => !current)}
                   type="button"
                 >
-                  <strong>{userName ?? "Usuario"}</strong>
+                  <strong>{userName ?? "Usuário"}</strong>
                   {userEmail ? <span className="muted">{userEmail}</span> : null}
                   <ChevronDown
                     aria-hidden="true"
@@ -131,8 +139,8 @@ export function AppShell({
             ) : (
               <>
                 <div className="topbar-user-card topbar-user-inline">
-                  <strong>Acesso publico</strong>
-                  <span className="muted">Somente grupos e pontos publicos</span>
+                  <strong>Acesso público</strong>
+                  <span className="muted">Somente grupos e pontos públicos</span>
                 </div>
                 <Link className="button-ghost" href="/login">
                   Entrar

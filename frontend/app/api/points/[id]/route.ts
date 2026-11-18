@@ -38,7 +38,7 @@ export async function GET(
     const viewerProfileId = await loadViewerProfileId(supabase, actorAuthUserId);
 
     if (!canViewerSeePoint(point, viewerProfileId)) {
-      throw new ApiRouteError("Ponto nao encontrado.", {
+      throw new ApiRouteError("Ponto não encontrado.", {
         status: 404,
         code: "POINT_NOT_FOUND",
       });
@@ -113,7 +113,7 @@ export async function DELETE(
     const point = await loadPointDetailOrThrow(supabase, id);
 
     if (!point.viewer_can_delete) {
-      throw new ApiRouteError("Voce nao tem permissao para arquivar este ponto.", {
+      throw new ApiRouteError("Você não tem permissão para arquivar este ponto.", {
         status: 403,
         code: "POINT_ARCHIVE_FORBIDDEN",
       });

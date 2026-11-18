@@ -20,14 +20,14 @@ export async function GET(
     const viewerProfileId = await loadViewerProfileId(supabase, user?.id ?? null);
 
     if (!canViewerSeePoint(point, viewerProfileId)) {
-      return NextResponse.json({ error: "Ponto nao encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Ponto não encontrado." }, { status: 404 });
     }
 
     const media = await getPointMedia(supabase, id);
     return NextResponse.json(media);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Nao foi possivel carregar as fotos do ponto." },
+      { error: error instanceof Error ? error.message : "Não foi possível carregar as fotos do ponto." },
       { status: 400 },
     );
   }

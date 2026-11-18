@@ -70,7 +70,7 @@ export function PointCreationModal({
             {hasCoordinates ? (
               <span className="badge badge-with-icon">
                 <Crosshair aria-hidden="true" size={14} />
-                Posicao capturada no mapa
+                Posição capturada no mapa
               </span>
             ) : null}
           </div>

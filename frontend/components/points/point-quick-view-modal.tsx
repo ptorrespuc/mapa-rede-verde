@@ -17,6 +17,8 @@ interface PointQuickViewModalProps {
   onApprove?: (point: PointRecord) => Promise<void> | void;
   onReject?: (point: PointRecord) => Promise<void> | void;
   onDelete?: (point: PointRecord) => Promise<void> | void;
+  /** Abre a edicao sem sair do mapa. */
+  onEdit?: (point: PointRecord) => void;
 }
 
 export function PointQuickViewModal({
@@ -25,6 +27,7 @@ export function PointQuickViewModal({
   onApprove,
   onReject,
   onDelete,
+  onEdit,
 }: PointQuickViewModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pointMedia, setPointMedia] = useState<PointMediaRecord[]>([]);
@@ -73,6 +76,9 @@ export function PointQuickViewModal({
   const currentPoint = point;
   const canReview = currentPoint.viewer_can_approve && isPointPendingForReview(currentPoint);
   const canDelete = currentPoint.viewer_can_delete && typeof onDelete === "function";
+  const canEdit =
+    typeof onEdit === "function" &&
+    (currentPoint.viewer_can_manage || currentPoint.viewer_can_request_update);
   const firstPointPhoto = pointMedia[0] ?? null;
 
   async function runAction(action?: (point: PointRecord) => Promise<void> | void) {
@@ -199,7 +205,15 @@ export function PointQuickViewModal({
               Arquivar ponto
             </button>
           ) : null}
-          <Link className="button" href={`/points/${currentPoint.id}`}>
+          {canEdit ? (
+            <button className="button" onClick={() => onEdit?.(currentPoint)} type="button">
+              {currentPoint.viewer_can_manage ? "Editar ponto" : "Sugerir alteração"}
+            </button>
+          ) : null}
+          <Link
+            className={canEdit ? "button-secondary" : "button"}
+            href={`/points/${currentPoint.id}`}
+          >
             Abrir detalhe completo
           </Link>
           <button className="button-ghost" onClick={onClose} type="button">

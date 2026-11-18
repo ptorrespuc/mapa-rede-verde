@@ -186,14 +186,14 @@ function buildChanges(
   const changes: PendingPointReviewChange[] = [];
 
   maybePushChange(changes, "group", "Grupo", current.groupName, proposed.groupName);
-  maybePushChange(changes, "classification", "Classificacao", current.classificationName, proposed.classificationName);
-  maybePushChange(changes, "title", "Titulo", current.title, proposed.title);
+  maybePushChange(changes, "classification", "Classificação", current.classificationName, proposed.classificationName);
+  maybePushChange(changes, "title", "Título", current.title, proposed.title);
   maybePushChange(
     changes,
     "species",
-    "Especie",
-    current.speciesName ?? "Sem especie",
-    proposed.speciesName ?? "Sem especie",
+    "Espécie",
+    current.speciesName ?? "Sem espécie",
+    proposed.speciesName ?? "Sem espécie",
   );
   maybePushChange(
     changes,
@@ -205,14 +205,14 @@ function buildChanges(
   maybePushChange(
     changes,
     "description",
-    "Descricao",
-    current.description ?? "Sem descricao",
-    proposed.description ?? "Sem descricao",
+    "Descrição",
+    current.description ?? "Sem descrição",
+    proposed.description ?? "Sem descrição",
   );
   maybePushChange(
     changes,
     "coordinates",
-    "Posicao no mapa",
+    "Posição no mapa",
     formatCoordinates(current.latitude, current.longitude),
     formatCoordinates(proposed.latitude, proposed.longitude),
   );
@@ -220,8 +220,8 @@ function buildChanges(
     changes,
     "visibility",
     "Visibilidade",
-    current.isPublic ? "Publico" : "Privado",
-    proposed.isPublic ? "Publico" : "Privado",
+    current.isPublic ? "Público" : "Privado",
+    proposed.isPublic ? "Público" : "Privado",
   );
 
   return changes;

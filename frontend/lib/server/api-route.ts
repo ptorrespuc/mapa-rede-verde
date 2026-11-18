@@ -74,7 +74,7 @@ export function buildApiErrorResponse(
 
 export function requireAuthenticatedUser(userId: string | null | undefined) {
   if (!userId) {
-    throw new ApiRouteError("Nao autenticado.", {
+    throw new ApiRouteError("Não autenticado.", {
       status: 401,
       code: "AUTH_REQUIRED",
     });
